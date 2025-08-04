@@ -1,37 +1,45 @@
-package server
+package main
 
 import (
 	"fmt"
-	"os"
-	"strings"
-	"time"
+
+	"github.com/ThomasCardin/peek/pkg/kubernetes"
 )
 
-func clearScreen() {
-	// Séquences d'échappement ANSI pour clear + cursor en haut
-	fmt.Print("\033[2J\033[H")
-}
-
-func readCPUStats() string {
-	data, err := os.ReadFile("/proc/stat")
+func main() {
+	client, err := kubernetes.Client()
 	if err != nil {
-		return fmt.Sprintf("Erreur: %v", err)
+		fmt.Printf("error: %s \n", err.Error())
 	}
 
-	lines := strings.Split(string(data), "\n")
-	return lines[0]
-}
+	nodes, err := kubernetes.GetNodes(client)
+	if err != nil {
+		fmt.Printf("%s\n", err.Error())
+	}
 
-func main() {
-	for {
-		clearScreen()
-		
-		now := time.Now().Format("15:04:05")
-		cpuStats := readCPUStats()
-		
-		fmt.Printf("Peek - CPU Monitor - %s\n\n", now)
-		fmt.Printf("Stats CPU: %s\n", cpuStats)
-		
-		time.Sleep(5 * time.Second)
+	for _, n := range nodes.Items {
+		pods, err := kubernetes.GetPods(client, n.Name)
+		if err != nil {
+			fmt.Printf("%s\n", err.Error())
+			continue
+		}
+
+		for _, pod := range pods.Items {
+			fmt.Printf("\nGetting container info for pod: %s\n", pod.Name)
+			containerIDs, err := kubernetes.GetContainerID(client, pod.Name, pod.Namespace)
+			if err != nil {
+				fmt.Printf("%s\n", err.Error())
+				continue
+			}
+
+			for _, containerID := range containerIDs {
+				pid, err := kubernetes.GetPID(containerID)
+				if err != nil {
+					fmt.Printf("%s\n", err.Error())
+					continue
+				}
+				fmt.Printf("Success: Container %s has PID %d\n", containerID, pid)
+			}
+		}
 	}
 }
