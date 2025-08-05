@@ -51,11 +51,6 @@ func GetPods(client *kubernetes.Clientset, nodeName string) (*v1.PodList, error)
 		return nil, fmt.Errorf("error: failed to get pods for node %s: %v", nodeName, err)
 	}
 
-	fmt.Printf("Pods on node %s:\n", nodeName)
-	for _, pod := range pods.Items {
-		fmt.Printf("  - %s (Namespace: %s, Status: %s)\n", pod.Name, pod.Namespace, pod.Status.Phase)
-	}
-
 	return pods, nil
 }
 
@@ -71,7 +66,6 @@ func GetContainerID(client *kubernetes.Clientset, podName, namespace string) ([]
 			containerID := strings.TrimPrefix(containerStatus.ContainerID, "containerd://")
 			containerID = strings.TrimPrefix(containerID, "docker://")
 			containerIDs = append(containerIDs, containerID)
-			fmt.Printf("Container: %s, ID: %s\n", containerStatus.Name, containerID)
 		}
 	}
 

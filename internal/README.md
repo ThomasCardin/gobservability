@@ -1,3 +1,0 @@
-/proc
-/dev
-/sys
