@@ -5,56 +5,55 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
-BINARY_NAME=gobservability
-BINARY_UNIX=$(BINARY_NAME)_unix
+AGENT_BINARY=agent
+SERVER_BINARY=server
 
-.PHONY: all build clean test deps run help
+.PHONY: all build agent agents stop help
 
-all: deps test build
+all: build
 
 build:
-	@echo "Building $(BINARY_NAME)..."
-	$(GOBUILD) -o $(BINARY_NAME) -v ./cmd/server
+	$(GOBUILD) -o $(AGENT_BINARY) -v ./cmd/agent
+	$(GOBUILD) -o $(SERVER_BINARY) -v ./cmd/server
 
-run: build
-	@echo "Running $(BINARY_NAME)..."
-	./$(BINARY_NAME)
+agent: build
+	@echo "Starting web server in background..."
+	@./$(SERVER_BINARY) &
+	@sleep 2
+	@echo "Starting single agent..."
+	./$(AGENT_BINARY)
 
-test:
-	@echo "Running tests..."
-	$(GOTEST) -v ./...
+agents: build
+	@echo "Cleaning up any existing processes..."
+	@killall -q $(SERVER_BINARY) $(AGENT_BINARY) 2>/dev/null || true
+	@sleep 1
+	@echo "Starting web server in background..."
+	@./$(SERVER_BINARY) &
+	@sleep 3
+	@echo "Starting 7 agents..."
+	@./$(AGENT_BINARY) -hostname="node-01" -interval=5s &
+	@./$(AGENT_BINARY) -hostname="agent-02" -interval=5s &
+	@./$(AGENT_BINARY) -hostname="worker-03" -interval=5s &
+	@./$(AGENT_BINARY) -hostname="controlplnae" -interval=5s &
+	@./$(AGENT_BINARY) -hostname="gpunode" -interval=5s &
+	@./$(AGENT_BINARY) -hostname="aiworkloadsonly" -interval=5s &
+	@./$(AGENT_BINARY) -hostname="node-07" -interval=5s &
+	@sleep 2
+	@echo "All 7 agents + web server started!"
+	@echo "Check http://localhost:8080"
 
-test-coverage:
-	@echo "Running tests with coverage..."
-	$(GOTEST) -v -coverprofile=coverage.out ./...
-	$(GOCMD) tool cover -html=coverage.out -o coverage.html
-	@echo "Coverage report generated: coverage.html"
-
-clean:
-	@echo "Cleaning..."
-	$(GOCLEAN)
-	rm -f $(BINARY_NAME)
-	rm -f $(BINARY_UNIX)
-	rm -f coverage.out coverage.html
-
-deps:
-	@echo "Downloading dependencies..."
-	$(GOMOD) download
-	$(GOMOD) tidy
-
-build-linux:
-	@echo "Building for Linux..."
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(BINARY_UNIX) -v ./cmd/server
+stop:
+	@echo "Stopping all gobservability processes..."
+	@killall -9 $(SERVER_BINARY) $(AGENT_BINARY) 2>/dev/null || true
+	@sleep 1
+	@echo "All processes stopped."
 
 help:
 	@echo "Available targets:"
-	@echo "  build           - Build the application"
-	@echo "  run             - Build and run the application"
-	@echo "  test            - Run tests"
-	@echo "  test-coverage   - Run tests with coverage report"
-	@echo "  clean           - Clean build artifacts"
-	@echo "  deps            - Download and tidy dependencies"
-	@echo "  build-linux     - Build for Linux"
+	@echo "  build           - Build agent and web-server"
+	@echo "  agent           - Build and run single agent + server"
+	@echo "  agents          - Build and run 7 test agents + server"
+	@echo "  stop            - Stop all gobservability processes"
 	@echo "  help            - Show this help"
 
 .DEFAULT_GOAL := help
