@@ -22,6 +22,88 @@
 
     <script>
         console.log('gobservability UI chargée - Refresh auto toutes les 2s avec hx-preserve');
+        
+        // Store previous values for change detection
+        let previousValues = new Map();
+
+        // Normalize value for comparison (remove extra spaces, standardize format)
+        function normalizeValue(value) {
+            if (!value) return '';
+            return value.trim()
+                       .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
+                       .replace(/\s*([%KMGTB]+)\s*/g, '$1')  // Remove spaces around units
+                       .replace(/(\d+)\.0+([%KMGTB])/g, '$1$2');  // Remove trailing zeros: "23.0%" -> "23%"
+        }
+
+        // Initialize or update value tracking
+        function trackValueChanges() {
+            const elements = document.querySelectorAll('[data-node][data-metric]');
+            
+            elements.forEach(element => {
+                const nodeId = element.dataset.node;
+                const metric = element.dataset.metric;
+                const key = `${nodeId}-${metric}`;
+                
+                let currentValue;
+                
+                // Extract current value from different element types
+                if (element.classList.contains('metric-value')) {
+                    currentValue = element.textContent;
+                } else {
+                    // For spans with nested metric-value
+                    const valueSpan = element.querySelector('.metric-value');
+                    if (valueSpan) {
+                        currentValue = valueSpan.textContent;
+                    } else {
+                        currentValue = element.textContent;
+                    }
+                }
+                
+                // Normalize both values for comparison
+                const normalizedCurrent = normalizeValue(currentValue);
+                const normalizedPrevious = previousValues.has(key) ? normalizeValue(previousValues.get(key)) : '';
+                
+                // Check if value actually changed (after normalization)
+                if (normalizedPrevious && normalizedPrevious !== normalizedCurrent) {
+                    // Value changed - animate it
+                    animateValueChange(element);
+                }
+                
+                // Store current value for next comparison (store normalized version)
+                previousValues.set(key, normalizedCurrent);
+            });
+        }
+
+        function animateValueChange(element) {
+            // Add animation class
+            element.classList.add('value-changed');
+            
+            // Also animate nested metric-value spans if they exist
+            const metricValues = element.querySelectorAll('.metric-value');
+            metricValues.forEach(span => {
+                span.classList.add('value-changed');
+            });
+            
+            // Remove animation class after animation completes (1.5 seconds)
+            setTimeout(() => {
+                element.classList.remove('value-changed');
+                metricValues.forEach(span => {
+                    span.classList.remove('value-changed');
+                });
+            }, 1500);
+        }
+
+        // Initialize tracking on first load
+        document.addEventListener('DOMContentLoaded', function() {
+            trackValueChanges();
+        });
+
+        // Track changes after each HTMX update
+        document.addEventListener('htmx:afterSwap', function(evt) {
+            if (evt.detail.target.id === 'workersList') {
+                trackValueChanges();
+            }
+        });
     </script>
 </body>
 </html>

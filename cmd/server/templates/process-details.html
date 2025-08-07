@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.PodName}} - Process Details | gobservability</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <a href="/pods/{{.NodeName}}" class="back-btn">← Back to {{.NodeName}} Pods</a>
+            <h1>Process Details - {{.PodName}}</h1>
+        </div>
+        
+        <!-- Node Section (Auto-updating with title) -->
+        <div id="nodeMetrics" hx-get="/pods/{{.NodeName}}/metrics" hx-trigger="every 2s" hx-swap="innerHTML">
+            {{if .CPU}}
+            <div class="metrics-grid">
+                <!-- CPU Card -->
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-title">🔥 CPU</span>
+                        <span class="metric-value main-value" data-node="{{.NodeName}}" data-metric="cpu-total">{{printf "%.1f%%" .CPUTotal}}</span>
+                    </div>
+                    <div class="metric-details">
+                        <div class="detail-row">
+                            <div class="cpu-label">
+                                <span>User</span>
+                                <span class="cpu-sub-inline">niced ({{printf "%.1f%%" .CPUNiceRaw}})</span>
+                            </div>
+                            <span class="metric-value" data-node="{{.NodeName}}" data-metric="cpu-user">{{printf "%.1f%%" .CPUUser}}</span>
+                        </div>
+                        <div class="detail-row">
+                            <div class="cpu-label">
+                                <span>System</span>
+                                <span class="cpu-sub-inline">irq({{printf "%.1f%%" .CPUIRQRaw}}) sirq({{printf "%.1f%%" .CPUSIRQRaw}})</span>
+                            </div>
+                            <span class="metric-value" data-node="{{.NodeName}}" data-metric="cpu-system">{{printf "%.1f%%" .CPUSystem}}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Memory Card -->
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-title">🧠 MEMORY</span>
+                        <span class="metric-value main-value" data-node="{{.NodeName}}" data-metric="memory-total">{{.Memory}}</span>
+                    </div>
+                    <div class="metric-details">
+                        <div class="detail-row">
+                            <span>Used</span>
+                            <span class="metric-value" data-node="{{.NodeName}}" data-metric="memory-used">{{printf "%.1fG" .MemoryUsed}}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>Free</span>
+                            <span class="metric-value" data-node="{{.NodeName}}" data-metric="memory-free">{{printf "%.1fG" .MemoryFree}}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Network Card -->
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-title">🌐 NETWORK</span>
+                        <span class="metric-value main-value" data-node="{{.NodeName}}" data-metric="network-total">{{printf "%.1fM" .NetworkTotal}}</span>
+                    </div>
+                    <div class="metric-details">
+                        <div class="detail-row">
+                            <span>RX</span>
+                            <span class="metric-value" data-node="{{.NodeName}}" data-metric="network-rx">{{printf "%.1fM" .NetworkRX}}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>TX</span>
+                            <span class="metric-value" data-node="{{.NodeName}}" data-metric="network-tx">{{printf "%.1fM" .NetworkTX}}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Disk Card -->
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-title">💾 DISK</span>
+                        <span class="metric-value main-value" data-node="{{.NodeName}}" data-metric="disk-total">{{printf "%.1fM" .DiskTotal}}</span>
+                    </div>
+                    <div class="metric-details">
+                        <div class="detail-row">
+                            <span>Read</span>
+                            <span class="metric-value" data-node="{{.NodeName}}" data-metric="disk-read">{{printf "%.1fM" .DiskRead}}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>Write</span>
+                            <span class="metric-value" data-node="{{.NodeName}}" data-metric="disk-write">{{printf "%.1fM" .DiskWrite}}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{end}}
+        </div>
+
+        <!-- Pod Information Section (Auto-updating with title) -->
+        <div id="podInfo" hx-get="/api/pods/{{.NodeName}}/{{.PodName}}/info" hx-trigger="every 2s" hx-swap="innerHTML">
+            <!-- Content will be loaded via HTMX -->
+        </div>
+
+        <!-- Process Details Section (Auto-updating with title) -->
+        <div id="processDetails" hx-get="/api/pods/{{.NodeName}}/{{.PodName}}/details-fragment" hx-trigger="every 2s" hx-swap="innerHTML">
+            <!-- Content will be loaded via HTMX -->
+        </div>
+
+        <!-- Actions Section -->
+        <div class="actions-section">
+            <button class="flamegraph-btn" disabled>
+                🔥 Generate Flamegraph (Coming Soon)
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Store previous values for change detection
+        let previousValues = new Map();
+
+        // Normalize value for comparison (remove extra spaces, standardize format)
+        function normalizeValue(value) {
+            if (!value) return '';
+            return value.trim()
+                       .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
+                       .replace(/\s*([%KMGTB]+)\s*/g, '$1')  // Remove spaces around units
+                       .replace(/(\d+)\.0+([%KMGTB])/g, '$1$2');  // Remove trailing zeros: "23.0%" -> "23%"
+        }
+
+        // Initialize or update value tracking
+        function trackValueChanges() {
+            const elements = document.querySelectorAll('[data-node][data-metric], [data-pod][data-metric], [data-process][data-metric]');
+            
+            elements.forEach(element => {
+                const nodeId = element.dataset.node || element.dataset.pod || element.dataset.process;
+                const metric = element.dataset.metric;
+                const key = `${nodeId}-${metric}`;
+                
+                let currentValue;
+                
+                // Extract current value from different element types
+                if (element.classList.contains('section-value')) {
+                    // Extract from parentheses: "(23.4%)" -> "23.4%"
+                    const match = element.textContent.match(/\(([^)]+)\)/);
+                    currentValue = match ? match[1] : element.textContent;
+                } else if (element.classList.contains('metric-value') || element.classList.contains('info-value') || element.classList.contains('value')) {
+                    currentValue = element.textContent.trim();
+                } else {
+                    // For spans with nested metric-value
+                    const valueSpan = element.querySelector('.metric-value, .info-value, .value');
+                    if (valueSpan) {
+                        currentValue = valueSpan.textContent.trim();
+                    } else {
+                        // Extract value after colon: "User: 23.4%" -> "23.4%"
+                        const match = element.textContent.match(/:\s*([0-9.]+[%GMKTB\s]*)/);
+                        currentValue = match ? match[1] : element.textContent.trim();
+                    }
+                }
+                
+                // Normalize both values for comparison
+                const normalizedCurrent = normalizeValue(currentValue);
+                const normalizedPrevious = previousValues.has(key) ? normalizeValue(previousValues.get(key)) : '';
+                
+                // Check if value actually changed (after normalization)
+                if (normalizedPrevious && normalizedPrevious !== normalizedCurrent) {
+                    // Value changed - animate it
+                    animateValueChange(element);
+                }
+                
+                // Store current value for next comparison (store normalized version)
+                previousValues.set(key, normalizedCurrent);
+            });
+        }
+
+        function animateValueChange(element) {
+            // Add animation class
+            element.classList.add('value-changed');
+            
+            // Also animate nested value spans if they exist
+            const valueSpans = element.querySelectorAll('.metric-value, .info-value, .value');
+            valueSpans.forEach(span => {
+                span.classList.add('value-changed');
+            });
+            
+            // Remove animation class after animation completes (1.5 seconds)
+            setTimeout(() => {
+                element.classList.remove('value-changed');
+                valueSpans.forEach(span => {
+                    span.classList.remove('value-changed');
+                });
+            }, 1500);
+        }
+
+        // Initialize tracking on first load
+        document.addEventListener('DOMContentLoaded', function() {
+            trackValueChanges();
+        });
+
+        // Track changes after each HTMX update
+        document.addEventListener('htmx:afterSwap', function(evt) {
+            if (evt.detail.target.id === 'nodeMetrics' || evt.detail.target.id === 'podInfo' || evt.detail.target.id === 'processDetails') {
+                trackValueChanges();
+            }
+        });
+    </script>
+</body>
+</html>

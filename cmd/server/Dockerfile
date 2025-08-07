@@ -2,16 +2,14 @@ FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
-COPY ../../go.mod ../../go.sum ./
+COPY go.mod go.sum ./
 RUN go mod download
 
-COPY ../../ .
+COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH go build -a -installsuffix cgo -o server ./cmd/server
 
-FROM alpine:latest
-
-RUN apk --no-cache add ca-certificates
+FROM gcr.io/distroless/static-debian11
 
 WORKDIR /root/
 

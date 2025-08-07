@@ -47,3 +47,25 @@ func (s *CacheStore) GetNodeStats(nodeName string) (*types.NodeStatsPayload, boo
 func (s *CacheStore) GetCacheStats() (int, int) {
 	return s.cache.ItemCount(), len(s.cache.Items())
 }
+
+// UINode cache methods
+func (s *CacheStore) StoreUINode(nodeName string, uiNode interface{}) {
+	s.cache.Set("ui_"+nodeName, uiNode, cache.DefaultExpiration)
+}
+
+func (s *CacheStore) GetUINode(nodeName string) (interface{}, bool) {
+	return s.cache.Get("ui_" + nodeName)
+}
+
+func (s *CacheStore) GetAllUINodes() map[string]interface{} {
+	result := make(map[string]interface{})
+
+	for key, item := range s.cache.Items() {
+		if len(key) > 3 && key[:3] == "ui_" {
+			nodeName := key[3:]
+			result[nodeName] = item.Object
+		}
+	}
+
+	return result
+}

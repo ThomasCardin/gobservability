@@ -1,0 +1,214 @@
+{{if .ProcessDetails}}
+<div class="section-separator">
+    <h2 class="section-title">🔍 PROCESS ({{if .ProcessDetails.Name}}{{.ProcessDetails.Name}}{{else}}PID {{.PodName}}{{end}})</h2>
+</div>
+<div class="process-details-grid">
+    <!-- Process Basic Info -->
+    <div class="details-section">
+        <h3>🔧 Process Information</h3>
+        <div class="detail-item">
+            <span class="label">Name:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="name">{{.ProcessDetails.Name}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">State:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="state">{{.ProcessDetails.State}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Priority:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="priority">{{.ProcessDetails.Priority}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Nice:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="nice">{{.ProcessDetails.Nice}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Threads:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="threads">{{.ProcessDetails.Threads}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Start Time (jiffies):</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="start_time">{{.ProcessDetails.StartTime}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Realtime Priority:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="realtime_priority">{{.ProcessDetails.RealtimePriority}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Kernel Thread:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="kthread">{{if .ProcessDetails.KThread}}Yes{{else}}No{{end}}</span>
+        </div>
+    </div>
+
+    <!-- CPU Details -->
+    <div class="details-section">
+        <h3>⚡ CPU Details</h3>
+        <div class="detail-item">
+            <span class="label">Children User Time:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="cutime">{{.ProcessDetails.CUTime}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Children System Time:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="cstime">{{.ProcessDetails.CSTime}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Task CPU:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="task_cpu">{{.ProcessDetails.TaskCPU}}</span>
+        </div>
+    </div>
+
+    <!-- Memory Details -->
+    <div class="details-section">
+        <h3>🧠 Memory Details</h3>
+        <div class="detail-item">
+            <span class="label">VM Peak:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="vm_peak">{{if .ProcessDetails.VmPeak}}{{.ProcessDetails.VmPeak}} KB{{else}}N/A{{end}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">VM Locked:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="vm_lck">{{if .ProcessDetails.VmLck}}{{.ProcessDetails.VmLck}} KB{{else}}N/A{{end}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">VM Pinned:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="vm_pin">{{if .ProcessDetails.VmPin}}{{.ProcessDetails.VmPin}} KB{{else}}N/A{{end}}</span>
+        </div>
+    </div>
+
+    <!-- Network Details -->
+    <div class="details-section">
+        <h3>🌐 Network Details</h3>
+        <div class="detail-item">
+            <span class="label">Packets Received:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="packets_received">{{.ProcessDetails.PacketsReceived}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Packets Transmitted:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="packets_transmitted">{{.ProcessDetails.PacketsTransmitted}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Errors Received:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="errors_received">{{.ProcessDetails.ErrorsReceived}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Errors Transmitted:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="errors_transmitted">{{.ProcessDetails.ErrorsTransmitted}}</span>
+        </div>
+    </div>
+
+    <!-- System Details -->
+    <div class="details-section">
+        <h3>🔒 System Details</h3>
+        <div class="detail-item">
+            <span class="label">Kernel Thread:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="kthread">{{if .ProcessDetails.KThread}}Yes{{else}}No{{end}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Seccomp:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="seccomp">{{.ProcessDetails.Seccomp}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Speculation Branch:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="speculation_indirect_branch">{{.ProcessDetails.SpeculationIndirectBranch}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">CPUs Allowed:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="cpus_allowed_list">{{.ProcessDetails.CpusAllowedList}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Memory Nodes:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="mems_allowed_list">{{.ProcessDetails.MemsAllowedList}}</span>
+        </div>
+    </div>
+
+    <!-- Context Switches -->
+    <div class="details-section">
+        <h3>🔄 Context Switches & I/O</h3>
+        <div class="detail-item">
+            <span class="label">Voluntary Context Switches:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="voluntary_ctxt_switches">{{.ProcessDetails.VoluntaryCtxtSwitches}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Non-voluntary Context Switches:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="nonvoluntary_ctxt_switches">{{.ProcessDetails.NonvoluntaryCtxtSwitches}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Cancelled Writes:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="cancelled_writes">{{if .ProcessDetails.CancelledWrites}}{{.ProcessDetails.CancelledWrites}} bytes{{else}}N/A{{end}}</span>
+        </div>
+    </div>
+
+    <!-- Command Line -->
+    <div class="details-section">
+        <h3>💻 Command Line</h3>
+        <div style="background: #f0f0f0; padding: 8px; border-radius: 3px; font-family: monospace; font-size: 0.85em; word-break: break-all; max-height: 60px; overflow-y: auto;">
+            {{if .ProcessDetails.Cmdline}}{{.ProcessDetails.Cmdline}}{{else}}N/A{{end}}
+        </div>
+    </div>
+
+    <!-- File Descriptors -->
+    <div class="details-section">
+        <h3>📁 File Descriptors</h3>
+        <div class="detail-item">
+            <span class="label">Open FDs:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="open_fds">{{.ProcessDetails.OpenFDs}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Max FDs:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="max_fds">{{if .ProcessDetails.MaxFDs}}{{.ProcessDetails.MaxFDs}}{{else}}N/A{{end}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">FD Usage:</span>
+            <span class="value">{{if and .ProcessDetails.MaxFDs (gt .ProcessDetails.MaxFDs 0)}}{{.ProcessDetails.OpenFDs}}/{{.ProcessDetails.MaxFDs}}{{else}}N/A{{end}}</span>
+        </div>
+    </div>
+
+    <!-- Extended Memory Info -->
+    <div class="details-section">
+        <h3>🧠 Extended Memory Info</h3>
+        <div class="detail-item">
+            <span class="label">Data Segment:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="vm_data">{{if .ProcessDetails.VmData}}{{.ProcessDetails.VmData}} KB{{else}}N/A{{end}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Stack Size:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="vm_stk">{{if .ProcessDetails.VmStk}}{{.ProcessDetails.VmStk}} KB{{else}}N/A{{end}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Executable:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="vm_exe">{{if .ProcessDetails.VmExe}}{{.ProcessDetails.VmExe}} KB{{else}}N/A{{end}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Libraries:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="vm_lib">{{if .ProcessDetails.VmLib}}{{.ProcessDetails.VmLib}} KB{{else}}N/A{{end}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Swap Usage:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="vm_swap">{{if .ProcessDetails.VmSwap}}{{.ProcessDetails.VmSwap}} KB{{else}}N/A{{end}}</span>
+        </div>
+    </div>
+
+    <!-- Control Groups -->
+    {{if .ProcessDetails.Cgroup}}
+    <div class="details-section">
+        <h3>🏛️ Control Groups</h3>
+        <div style="background: #f8f8f8; padding: 8px; border-radius: 3px; max-height: 120px; overflow-y: auto;">
+            {{range $cgroup := .ProcessDetails.Cgroup}}
+            <div style="font-family: monospace; font-size: 0.8em; margin-bottom: 3px; padding: 2px; border-left: 3px solid #007acc;">{{$cgroup}}</div>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+
+    <!-- Kernel Stack -->
+    {{if .ProcessDetails.Stack}}
+    <div class="details-section">
+        <h3>🔍 Kernel Stack Trace</h3>
+        <div style="background: #1a1a1a; padding: 8px; border-radius: 3px; font-family: monospace; font-size: 0.75em; max-height: 150px; overflow-y: auto;">
+            {{range .ProcessDetails.Stack}}
+            <div style="color: #00ff00; white-space: nowrap;">{{.}}</div>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+</div>
+{{end}}

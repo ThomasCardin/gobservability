@@ -6,7 +6,7 @@
         <h3 class="node-name">{{.Name}}</h3>
         <div class="node-actions">
             <button class="action-btn alerts-btn" onclick="toggleAlerts('{{.Name}}')">🚨 ALERTS</button>
-            <button class="action-btn pods-btn" onclick="togglePods('{{.Name}}')">🚀 PODS</button>
+            <a href="/pods/{{.Name}}" class="action-btn pods-btn">🚀 PODS</a>
         </div>
     </div>
     
@@ -97,15 +97,6 @@
         <div class="section-header">Alerts</div>
         <div class="alert-item">No active alerts</div>
     </div>
-    
-    <div class="pods-section" id="pods-{{.Name}}" style="display: none;">
-        <div class="section-header">Node Pods</div>
-        <div class="pods-list">
-            <div class="pod-item">kube-proxy-xyz</div>
-            <div class="pod-item">calico-node-abc</div>
-            <div class="pod-item">app-service-123</div>
-        </div>
-    </div>
     {{else}}
     <div class="error-state">En attente des données...</div>
     {{end}}
@@ -113,10 +104,6 @@
 {{end}}
 
 <script>
-function togglePods(nodeName) {
-    const podsSection = document.getElementById('pods-' + nodeName);
-    podsSection.style.display = podsSection.style.display === 'none' ? 'block' : 'none';
-}
 
 function toggleAlerts(nodeName) {
     const alertsSection = document.getElementById('alerts-' + nodeName);
@@ -205,8 +192,8 @@ function applyNodeColors() {
     
     nodeCards.forEach((card, index) => {
         // Simple subtle border that goes around the whole card
-        card.style.border = '2px solid #58a6ff';
-        card.style.borderRadius = '8px';
+        card.style.border = '1px solid #30363d';
+        card.style.borderRadius = '6px';
         
         // Or alternative: just add a small number badge
         // const nodeName = card.querySelector('.node-name');

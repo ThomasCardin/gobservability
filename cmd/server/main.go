@@ -26,8 +26,15 @@ func main() {
 	r.POST("/api/stats", api.ReceiveStatsHandler)
 
 	// UI endpoints
-	r.GET("/", api.IndexHandler)              // Page principale
-	r.GET("/nodes", api.NodesFragmentHandler) // HTMX fragment
+	r.GET("/", api.IndexHandler)                                                              // Page principale
+	r.GET("/nodes", api.NodesFragmentHandler)                                                 // HTMX fragment
+	r.GET("/pods/:nodename", api.PodsHandler)                                                 // Page pods pour un nœud
+	r.GET("/pods/:nodename/fragment", api.PodsFragmentHandler)                                // Fragment HTMX pour pods
+	r.GET("/pods/:nodename/metrics", api.PodsMetricsFragmentHandler)                          // Fragment HTMX pour métriques du nœud
+	r.GET("/process/:nodename/:podname", api.ProcessDetailsPageHandler)                       // Page détails processus
+	r.GET("/api/pods/:nodename/:podname/details", api.PodProcessDetailsHandler)               // API pour détails processus JSON
+	r.GET("/api/pods/:nodename/:podname/info", api.PodInfoHandler)                            // Fragment HTMX pour infos pod
+	r.GET("/api/pods/:nodename/:podname/details-fragment", api.ProcessDetailsFragmentHandler) // Fragment HTMX pour process details
 
 	log.Printf("Server started on port %s", *port)
 	log.Printf("Mode: %s, Cache TTL: 10s", *ginMode)

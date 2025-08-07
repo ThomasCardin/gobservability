@@ -1,0 +1,86 @@
+{{if .CPU}}
+<div class="section-separator">
+    <h2 class="section-title">🖥️ NODE ({{.NodeName}}) {{.Timestamp}}</h2>
+</div>
+<div class="metrics-grid">
+    <!-- CPU Card -->
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">🔥 CPU</span>
+            <span class="metric-value main-value" data-node="{{.NodeName}}" data-metric="cpu-total">{{printf "%.1f%%" .CPUTotal}}</span>
+        </div>
+        <div class="metric-details">
+            <div class="detail-row">
+                <div class="cpu-label">
+                    <span>User</span>
+                    <span class="cpu-sub-inline">niced ({{printf "%.1f%%" .CPUNiceRaw}})</span>
+                </div>
+                <span class="metric-value" data-node="{{.NodeName}}" data-metric="cpu-user">{{printf "%.1f%%" .CPUUser}}</span>
+            </div>
+            <div class="detail-row">
+                <div class="cpu-label">
+                    <span>System</span>
+                    <span class="cpu-sub-inline">irq({{printf "%.1f%%" .CPUIRQRaw}}) sirq({{printf "%.1f%%" .CPUSIRQRaw}})</span>
+                </div>
+                <span class="metric-value" data-node="{{.NodeName}}" data-metric="cpu-system">{{printf "%.1f%%" .CPUSystem}}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Memory Card -->
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">🧠 MEMORY</span>
+            <span class="metric-value main-value" data-node="{{.NodeName}}" data-metric="memory-total">{{.Memory}}</span>
+        </div>
+        <div class="metric-details">
+            <div class="detail-row">
+                <span>Used</span>
+                <span class="metric-value" data-node="{{.NodeName}}" data-metric="memory-used">{{printf "%.1fG" .MemoryUsed}}</span>
+            </div>
+            <div class="detail-row">
+                <span>Free</span>
+                <span class="metric-value" data-node="{{.NodeName}}" data-metric="memory-free">{{printf "%.1fG" .MemoryFree}}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Network Card -->
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">🌐 NETWORK</span>
+            <span class="metric-value main-value" data-node="{{.NodeName}}" data-metric="network-total">{{printf "%.1fM" .NetworkTotal}}</span>
+        </div>
+        <div class="metric-details">
+            <div class="detail-row">
+                <span>RX</span>
+                <span class="metric-value" data-node="{{.NodeName}}" data-metric="network-rx">{{printf "%.1fM" .NetworkRX}}</span>
+            </div>
+            <div class="detail-row">
+                <span>TX</span>
+                <span class="metric-value" data-node="{{.NodeName}}" data-metric="network-tx">{{printf "%.1fM" .NetworkTX}}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Disk Card -->
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">💾 DISK</span>
+            <span class="metric-value main-value" data-node="{{.NodeName}}" data-metric="disk-total">{{printf "%.1fM" .DiskTotal}}</span>
+        </div>
+        <div class="metric-details">
+            <div class="detail-row">
+                <span>Read</span>
+                <span class="metric-value" data-node="{{.NodeName}}" data-metric="disk-read">{{printf "%.1fM" .DiskRead}}</span>
+            </div>
+            <div class="detail-row">
+                <span>Write</span>
+                <span class="metric-value" data-node="{{.NodeName}}" data-metric="disk-write">{{printf "%.1fM" .DiskWrite}}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{{else}}
+<div class="error-state">En attente des données...</div>
+{{end}}
