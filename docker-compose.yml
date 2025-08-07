@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: ./cmd/server/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - GIN_MODE=release
+    networks:
+      - gobservability
+
+  agent:
+    build:
+      context: .
+      dockerfile: ./cmd/agent/Dockerfile
+    environment:
+      - SERVER_URL=http://server:8080
+    command: ["./agent", "-server", "http://server:8080", "-interval", "5s"]
+    depends_on:
+      - server
+    networks:
+      - gobservability
+
+networks:
+  gobservability:
+    driver: bridge
