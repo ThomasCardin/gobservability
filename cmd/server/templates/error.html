@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - Gobservability</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div id="app">
+        <h1 class="title-simple">GOBSERVABILITY</h1>
+        
+        <div class="error-container">
+            <div class="error-icon">⚠️</div>
+            <h2 class="error-title">Une erreur s'est produite</h2>
+            <p class="error-message">{{.error}}</p>
+            <div class="error-actions">
+                <a href="/" class="btn-primary">Retour à l'accueil</a>
+                <button onclick="history.back()" class="btn-secondary">Retour</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .error-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .error-title {
+            color: #f85149;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            letter-spacing: 1px;
+        }
+
+        .error-message {
+            color: #8b949e;
+            font-size: 1.2rem;
+            margin-bottom: 32px;
+            max-width: 600px;
+            line-height: 1.5;
+        }
+
+        .error-actions {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn-primary, .btn-secondary {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #58a6ff, #1f6feb);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1f6feb, #58a6ff);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(88, 166, 255, 0.3);
+        }
+
+        .btn-secondary {
+            background: #21262d;
+            color: #e6edf3;
+            border: 1px solid #30363d;
+        }
+
+        .btn-secondary:hover {
+            background: #30363d;
+            border-color: #484f58;
+            transform: translateY(-2px);
+        }
+    </style>
+</body>
+</html>

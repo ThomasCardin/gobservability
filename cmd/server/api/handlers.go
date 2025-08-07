@@ -359,6 +359,7 @@ func ProcessDetailsFragmentHandler(c *gin.Context) {
 
 	c.HTML(http.StatusOK, "process-details-fragment.html", gin.H{
 		"PodName":        podName,
+		"PID":            targetPod.PID,
 		"ProcessDetails": &targetPod.PidDetails,
 	})
 }
