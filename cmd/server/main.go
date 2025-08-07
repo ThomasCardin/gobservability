@@ -29,11 +29,10 @@ func main() {
 	r.GET("/", api.IndexHandler)              // Page principale
 	r.GET("/nodes", api.NodesFragmentHandler) // HTMX fragment
 
-	log.Printf("Gobservability Server démarré sur le port %s", *port)
-	log.Printf("Interface disponible: http://localhost:%s", *port)
+	log.Printf("Server started on port %s", *port)
 	log.Printf("Mode: %s, Cache TTL: 10s", *ginMode)
 
 	if err := r.Run(":" + *port); err != nil {
-		log.Fatalf("Erreur démarrage serveur: %v", err)
+		log.Fatalf("error: starting server: %v", err)
 	}
 }

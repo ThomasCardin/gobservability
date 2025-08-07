@@ -1,7 +1,6 @@
 package api
 
 import (
-	"log"
 	"net/http"
 	"sort"
 
@@ -40,7 +39,6 @@ func ReceiveStatsHandler(c *gin.Context) {
 	var payload types.NodeStatsPayload
 
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		log.Printf("Erreur parsing JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 		return
 	}
