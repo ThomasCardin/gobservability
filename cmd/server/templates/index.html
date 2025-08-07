@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workers Monitor</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div id="app">
+        <h1 class="title-simple">GOBSERVABILITY</h1>
+        
+        <!-- HTMX auto-refresh toutes les 2 secondes -->
+        <div id="workersList" 
+             hx-get="/nodes" 
+             hx-trigger="load, every 2s" 
+             hx-swap="innerHTML">
+            <!-- Le contenu va être chargé automatiquement par HTMX -->
+            <div class="loading">Chargement des nodes...</div>
+        </div>
+    </div>
+
+    <script>
+        console.log('gobservability UI chargée - Refresh auto toutes les 2s avec hx-preserve');
+    </script>
+</body>
+</html>
