@@ -31,4 +31,6 @@ go.work.sum
 # .idea/
 # .vscode/
 
-*.agent
+# Built binaries
+/agent
+/server

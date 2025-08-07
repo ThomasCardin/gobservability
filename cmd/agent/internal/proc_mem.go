@@ -7,18 +7,20 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ThomasCardin/peek/cmd/agent/shared"
 	"github.com/ThomasCardin/peek/shared/types"
 )
 
-const (
-	PROC_MEMINFO = "/proc/meminfo"
-)
+func getProcMeminfo(devMode string) string {
+	return shared.GetProcBasePath(devMode) + "/meminfo"
+}
 
 // https://github.com/torvalds/linux/blob/master/Documentation/filesystems/proc.rst#meminfo
-func ProcMeminfo() (*types.MemoryStats, error) {
-	file, err := os.Open(PROC_MEMINFO)
+func ProcMeminfo(devMode string) (*types.MemoryStats, error) {
+	procMeminfoPath := getProcMeminfo(devMode)
+	file, err := os.Open(procMeminfoPath)
 	if err != nil {
-		return nil, fmt.Errorf("error: opening %s %v", PROC_MEMINFO, err)
+		return nil, fmt.Errorf("error: opening %s %v", procMeminfoPath, err)
 	}
 	defer file.Close()
 
@@ -59,7 +61,7 @@ func ProcMeminfo() (*types.MemoryStats, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error: reading %s: %v", PROC_MEMINFO, err)
+		return nil, fmt.Errorf("error: reading %s: %v", procMeminfoPath, err)
 	}
 
 	return memStats, nil

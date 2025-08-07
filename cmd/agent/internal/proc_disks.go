@@ -7,18 +7,20 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ThomasCardin/peek/cmd/agent/shared"
 	"github.com/ThomasCardin/peek/shared/types"
 )
 
-const (
-	PROC_DISKSTATS = "/proc/diskstats"
-)
+func getProcDiskstats(devMode string) string {
+	return shared.GetProcBasePath(devMode) + "/diskstats"
+}
 
 // https://github.com/torvalds/linux/blob/master/Documentation/ABI/testing/procfs-diskstats
-func ProcDiskstats() (*types.DiskStats, error) {
-	file, err := os.Open(PROC_DISKSTATS)
+func ProcDiskstats(devMode string) (*types.DiskStats, error) {
+	procDiskstatsPath := getProcDiskstats(devMode)
+	file, err := os.Open(procDiskstatsPath)
 	if err != nil {
-		return nil, fmt.Errorf("error: opening %s %v", PROC_DISKSTATS, err)
+		return nil, fmt.Errorf("error: opening %s %v", procDiskstatsPath, err)
 	}
 	defer file.Close()
 
@@ -60,7 +62,7 @@ func ProcDiskstats() (*types.DiskStats, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error: reading %s: %v", PROC_DISKSTATS, err)
+		return nil, fmt.Errorf("error: reading %s: %v", procDiskstatsPath, err)
 	}
 
 	return diskStats, nil

@@ -7,18 +7,20 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ThomasCardin/peek/cmd/agent/shared"
 	"github.com/ThomasCardin/peek/shared/types"
 )
 
-const (
-	PROC_STAT = "/proc/stat"
-)
+func getProcStat(devMode string) string {
+	return shared.GetProcBasePath(devMode) + "/stat"
+}
 
 // https://github.com/torvalds/linux/blob/master/Documentation/filesystems/proc.rst#17-miscellaneous-kernel-statistics-in-procstat
-func ProcStat() (*types.CPUStats, error) {
-	file, err := os.Open(PROC_STAT)
+func ProcStat(devMode string) (*types.CPUStats, error) {
+	procStatPath := getProcStat(devMode)
+	file, err := os.Open(procStatPath)
 	if err != nil {
-		return nil, fmt.Errorf("error: opening %s %v", PROC_STAT, err)
+		return nil, fmt.Errorf("error: opening %s %v", procStatPath, err)
 	}
 	defer file.Close()
 
@@ -28,7 +30,7 @@ func ProcStat() (*types.CPUStats, error) {
 		if strings.HasPrefix(line, "cpu ") {
 			fields := strings.Fields(line)
 			if len(fields) < 8 {
-				return nil, fmt.Errorf("error: invalid %s format", PROC_STAT)
+				return nil, fmt.Errorf("error: invalid %s format", procStatPath)
 			}
 
 			user, _ := strconv.ParseUint(fields[1], 10, 64)
@@ -38,6 +40,10 @@ func ProcStat() (*types.CPUStats, error) {
 			iowait, _ := strconv.ParseUint(fields[5], 10, 64)
 			irq, _ := strconv.ParseUint(fields[6], 10, 64)
 			softirq, _ := strconv.ParseUint(fields[7], 10, 64)
+			steal := uint64(0)
+			if len(fields) >= 9 {
+				steal, _ = strconv.ParseUint(fields[8], 10, 64)
+			}
 
 			return &types.CPUStats{
 				User:    int(user),
@@ -47,13 +53,14 @@ func ProcStat() (*types.CPUStats, error) {
 				IOWait:  int(iowait),
 				IRQ:     int(irq),
 				SoftIRQ: int(softirq),
-				Total:   int(user + nice + system + idle + iowait + irq + softirq),
+				Steal:   int(steal),
+				Total:   int(user + nice + system + idle + iowait + irq + softirq + steal),
 			}, nil
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error: reading %s: %v", PROC_STAT, err)
+		return nil, fmt.Errorf("error: reading %s: %v", procStatPath, err)
 	}
 
 	return nil, fmt.Errorf("error: finding cpu ")

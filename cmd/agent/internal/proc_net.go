@@ -7,18 +7,20 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ThomasCardin/peek/cmd/agent/shared"
 	"github.com/ThomasCardin/peek/shared/types"
 )
 
-const (
-	PROC_NET_DEV = "/proc/net/dev"
-)
+func getProcNetDev(devMode string) string {
+	return shared.GetProcBasePath(devMode) + "/net/dev"
+}
 
 // https://github.com/torvalds/linux/blob/master/Documentation/filesystems/proc.rst#13-networking-info-in-procnet
-func ProcNetDev() (*types.NetworkStats, error) {
-	file, err := os.Open(PROC_NET_DEV)
+func ProcNetDev(devMode string) (*types.NetworkStats, error) {
+	procNetDevPath := getProcNetDev(devMode)
+	file, err := os.Open(procNetDevPath)
 	if err != nil {
-		return nil, fmt.Errorf("error: opening %s %v", PROC_NET_DEV, err)
+		return nil, fmt.Errorf("error: opening %s %v", procNetDevPath, err)
 	}
 	defer file.Close()
 
@@ -59,7 +61,7 @@ func ProcNetDev() (*types.NetworkStats, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error: reading %s: %v", PROC_NET_DEV, err)
+		return nil, fmt.Errorf("error: reading %s: %v", procNetDevPath, err)
 	}
 
 	return netStats, nil
