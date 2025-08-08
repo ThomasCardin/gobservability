@@ -16,18 +16,18 @@ func ProcPIDStat(devMode string, pid int) (*types.PodCPUStats, *types.PidDetails
 	procPath := fmt.Sprintf("%s/%d/stat", shared.GetProcBasePath(devMode), pid)
 	file, err := os.Open(procPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error opening %s: %v", procPath, err)
+		return nil, nil, fmt.Errorf("error: opening %s: %v", procPath, err)
 	}
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 	if !scanner.Scan() {
-		return nil, nil, fmt.Errorf("error reading %s", procPath)
+		return nil, nil, fmt.Errorf("error: reading %s", procPath)
 	}
 
 	fields := strings.Fields(scanner.Text())
 	if len(fields) < 44 { // We need at least 44 fields for all our data
-		return nil, nil, fmt.Errorf("insufficient fields in %s", procPath)
+		return nil, nil, fmt.Errorf("error: insufficient fields in %s", procPath)
 	}
 
 	// Parse CPU stats (fields 13, 14, 15, 16)
