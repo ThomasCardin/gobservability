@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gobservability-ingress
+  namespace: gobservability
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx 
+  rules:
+  - host: gobservability.local.dev
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gobservability-server
+            port:
+              number: 8080
+  tls:
+  - hosts:
+    - gobservability.local.dev
+    secretName: gobservability-tls

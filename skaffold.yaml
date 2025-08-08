@@ -7,11 +7,11 @@ build:
   local:
     push: true
   artifacts:
-  - image: ghcr.io/<your-user>/gobservability-server
+  - image: ghcr.io/<username>/gobservability-server
     context: .
     docker:
       dockerfile: cmd/server/Dockerfile
-  - image: ghcr.io/<your-user>/gobservability-agent
+  - image: ghcr.io/<username>/gobservability-agent
     context: .
     docker:
       dockerfile: cmd/agent/Dockerfile
@@ -20,7 +20,7 @@ deploy:
     defaultNamespace: gobservability
 manifests:
   rawYaml:
-  - k8s/*.yaml
+  - k8s/helm/templates/*.yaml
 portForward:
 - resourceType: service
   resourceName: gobservability-server

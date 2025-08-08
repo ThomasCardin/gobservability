@@ -3,6 +3,7 @@ package types
 import "fmt"
 
 type CPUStats struct {
+	// Raw values from /proc/stat
 	User    int `json:"user"`
 	Nice    int `json:"nice"`
 	System  int `json:"system"`
@@ -12,6 +13,9 @@ type CPUStats struct {
 	SoftIRQ int `json:"softirq"`
 	Steal   int `json:"steal"`
 	Total   int `json:"total"`
+
+	// Calculated values by agent
+	CPUPercent float64 `json:"cpu_percent"` // Overall CPU usage percentage
 }
 
 func (c *CPUStats) FormatCPU() string {

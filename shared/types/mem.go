@@ -3,6 +3,7 @@ package types
 import "fmt"
 
 type MemoryStats struct {
+	// Raw values from /proc/meminfo
 	MemTotal     int `json:"mem_total"`
 	MemFree      int `json:"mem_free"`
 	MemAvailable int `json:"mem_available"`
@@ -11,6 +12,9 @@ type MemoryStats struct {
 	SwapCached   int `json:"swap_cached"`
 	SwapTotal    int `json:"swap_total"`
 	SwapFree     int `json:"swap_free"`
+	
+	// Calculated values by agent
+	MemoryPercent float64 `json:"memory_percent"` // Memory usage percentage
 }
 
 func (m *MemoryStats) FormatMemory() string {

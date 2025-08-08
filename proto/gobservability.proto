@@ -1,0 +1,217 @@
+syntax = "proto3";
+
+package gobservability;
+
+option go_package = "./proto";
+
+import "google/protobuf/timestamp.proto";
+
+// Main service for agent/server communication
+service NodeService {
+  rpc SendStats(NodeStatsRequest) returns (StatsResponse);
+  rpc GenerateFlamegraph(FlamegraphRequest) returns (FlamegraphResponse);
+  rpc AgentStream(stream AgentMessage) returns (stream ServerMessage);
+}
+
+message NodeStatsRequest {
+  string node_name = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  NodeMetrics metrics = 3;
+}
+
+message StatsResponse {
+  string status = 1;
+}
+
+// Flamegraph generation request
+message FlamegraphRequest {
+  string node_name = 1;
+  string pod_name = 2;     // Optional - if empty, generates for entire node
+  int32 duration = 3;      // Duration in seconds
+  string format = 4;       // Output format: "svg", "txt", "folded"
+}
+
+// Flamegraph generation response
+message FlamegraphResponse {
+  bytes flamegraph_data = 1; // Generated flamegraph content
+  string format = 2;         // Actual format returned
+  string error = 3;          // Error message if generation failed
+}
+
+// Metrics struct type based on shared/types/*
+message NodeMetrics {
+  CPUStats cpu = 1;
+  MemoryStats memory = 2;
+  NetworkStats network = 3;
+  DiskStats disk = 4;
+  repeated Pod pods = 5;
+}
+
+message CPUStats {
+  int64 user = 1;
+  int64 nice = 2;
+  int64 system = 3;
+  int64 idle = 4;
+  int64 iowait = 5;
+  int64 irq = 6;
+  int64 softirq = 7;
+  int64 steal = 8;
+  int64 total = 9;
+  double cpu_percent = 10;
+}
+
+message MemoryStats {
+  // Raw values from /proc/meminfo - exactly like types.MemoryStats
+  int64 mem_total = 1;
+  int64 mem_free = 2;
+  int64 mem_available = 3;
+  int64 buffers = 4;
+  int64 cached = 5;
+  int64 swap_cached = 6;
+  int64 swap_total = 7;
+  int64 swap_free = 8;
+  
+  // Calculated values by agent
+  double memory_percent = 9; // Memory usage percentage
+}
+
+message NetworkStats {
+  // Raw values from /proc/net/dev - exactly like types.NetworkStats
+  uint64 bytes_received = 1;
+  uint64 bytes_transmitted = 2;
+  uint64 packets_received = 3;
+  uint64 packets_transmitted = 4;
+  uint64 errors_received = 5;
+  uint64 errors_transmitted = 6;
+  
+  // Calculated rates by agent (MB/s)
+  double rx_rate = 7;     // Receive rate in MB/s
+  double tx_rate = 8;     // Transmit rate in MB/s
+  double total_rate = 9;  // Total rate in MB/s
+}
+
+message DiskStats {
+  // Raw values from /proc/diskstats - exactly like types.DiskStats
+  uint64 reads_completed = 1;
+  uint64 reads_merged = 2;
+  uint64 sectors_read = 3;
+  uint64 time_reading = 4;
+  uint64 writes_completed = 5;
+  uint64 writes_merged = 6;
+  uint64 sectors_written = 7;
+  uint64 time_writing = 8;
+  
+  // Calculated rates by agent (MB/s)
+  double read_rate = 9;   // Read rate in MB/s
+  double write_rate = 10; // Write rate in MB/s
+  double total_rate = 11; // Total I/O rate in MB/s
+}
+
+message Pod {
+  string name = 1;
+  string container_id = 2;
+  int64 pid = 3;
+  PodMetrics pod_metrics = 4;
+  PidDetails pid_details = 5;
+}
+
+message PodMetrics {
+  PodCPUStats cpu = 1;
+  PodMemoryStats memory = 2;
+  PodNetworkStats network = 3;
+  PodDiskStats disk = 4;
+}
+
+message PodCPUStats {
+  uint64 utime = 1;       // User mode jiffies
+  uint64 stime = 2;       // Kernel mode jiffies  
+  double cpu_percent = 3; // Calculated CPU %
+}
+
+message PodMemoryStats {
+  uint64 vm_size = 1;     // Virtual memory size (KB)
+  uint64 vm_rss = 2;      // Resident memory size (KB)
+  double mem_percent = 3; // % of total node memory
+}
+
+message PodNetworkStats {
+  uint64 bytes_received = 1;
+  uint64 bytes_transmitted = 2;
+}
+
+message PodDiskStats {
+  uint64 read_bytes = 1;  // Bytes read from disk
+  uint64 write_bytes = 2; // Bytes written to disk
+}
+
+message PidDetails {
+  // From /proc/{PID}/stat - process basics
+  string name = 1;                      // Filename of executable
+  string state = 2;                     // Process state
+  int32 priority = 3;                   // Priority level
+  int32 nice = 4;                       // Nice level
+  int32 threads = 5;                    // Number of threads
+  uint64 start_time = 6;                // Start time after boot
+  int32 realtime_priority = 7;          // Realtime priority
+  uint64 cutime = 8;                    // Children user time
+  uint64 cstime = 9;                    // Children system time
+  int32 task_cpu = 10;                  // Which CPU the task is scheduled on
+  
+  // From /proc/{PID}/status - security and scheduling
+  int32 kthread = 11;                   // Kernel thread flag
+  int32 seccomp = 12;                   // Seccomp mode
+  string speculation_indirect_branch = 13;
+  string cpus_allowed_list = 14;
+  string mems_allowed_list = 15;
+  uint64 voluntary_ctxt_switches = 16;
+  uint64 nonvoluntary_ctxt_switches = 17;
+  uint64 vm_peak = 18;                  // Peak virtual memory size (KB)
+  uint64 vm_lck = 19;                   // Locked memory size (KB)
+  uint64 vm_pin = 20;                   // Pinned memory size (KB)
+  
+  // From /proc/{PID}/net - network
+  uint64 packets_received = 21;
+  uint64 packets_transmitted = 22;
+  uint64 errors_received = 23;
+  uint64 errors_transmitted = 24;
+  
+  // From /proc/{PID}/io
+  uint64 cancelled_writes = 25;
+  
+  // Additional process information
+  string cmdline = 26;                  // Command line with arguments
+  repeated string stack = 27;           // Kernel stack trace
+  int32 open_fds = 28;                  // Number of open file descriptors
+  uint64 max_fds = 29;                  // Maximum file descriptors allowed
+  repeated string cgroup = 30;          // Control groups
+  uint64 vm_data = 31;                  // Data segment size (KB)
+  uint64 vm_stk = 32;                   // Stack segment size (KB)
+  uint64 vm_exe = 33;                   // Text segment size (KB)
+  uint64 vm_lib = 34;                   // Shared library size (KB)
+  uint64 vm_swap = 35;                  // Swap usage (KB)
+}
+
+// Bidirectional streaming messages for agent-server communication
+message AgentMessage {
+  oneof message {
+    AgentHello hello = 1;
+    NodeStatsRequest stats = 2;
+    FlamegraphResponse flamegraph_response = 3;
+  }
+}
+
+message ServerMessage {
+  oneof message {
+    ServerAck ack = 1;
+    FlamegraphRequest flamegraph_request = 2;
+  }
+}
+
+message AgentHello {
+  string node_name = 1;
+  string agent_version = 2;
+}
+
+message ServerAck {
+  string message = 1;
+}

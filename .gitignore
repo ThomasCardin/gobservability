@@ -34,7 +34,3 @@ go.work.sum
 # Built binaries
 /agent
 /server
-
-#
-k8s/
-skaffold.yaml

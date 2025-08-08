@@ -21,11 +21,11 @@ spec:
       - name: ghcr-secret
       containers:
       - name: agent
-        image: ghcr.io/<your-user>/gobservability-agent
+        image: ghcr.io/thomascardin/gobservability-agent
         imagePullPolicy: Always
         args:
         - "./agent"
-        - "-server=http://gobservability-server:8080"
+        - "-grpc-server=gobservability-server:9090"
         - "-interval=5s"
         - "-hostname=$(NODE_NAME)"
         env:

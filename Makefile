@@ -8,7 +8,7 @@ GOMOD=$(GOCMD) mod
 AGENT_BINARY=agent
 SERVER_BINARY=server
 
-.PHONY: all build agent agents stop help skaffold-run skaffold-delete
+.PHONY: all build agent agents stop help proto clean-proto install-proto-deps
 
 all: build
 
@@ -48,22 +48,28 @@ stop:
 	@sleep 1
 	@echo "All processes stopped."
 
-skaffold-run:
-	@echo "Deploying to Kubernetes with Skaffold..."
-	skaffold run
+# Protobuf/gRPC targets
+install-proto-deps:
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
-skaffold-delete:
-	@echo "Deleting Kubernetes deployment with Skaffold..."
-	skaffold delete
+proto:
+	@echo "Generating Go code from protobuf files..."
+	export PATH=$$PATH:$(shell go env GOPATH)/bin && protoc --go_out=. --go-grpc_out=. proto/gobservability.proto
+
+clean-proto:
+	@echo "Cleaning generated protobuf files..."
+	rm -f proto/*.pb.go
 
 help:
 	@echo "Available targets:"
-	@echo "  build           - Build agent and web-server"
-	@echo "  agent           - Build and run single agent + server"
-	@echo "  agents          - Build and run 7 test agents + server"
-	@echo "  stop            - Stop all gobservability processes"
-	@echo "  skaffold-run    - Deploy to Kubernetes with Skaffold"
-	@echo "  skaffold-delete - Delete Kubernetes deployment"
-	@echo "  help            - Show this help"
+	@echo "  build              - Build agent and web-server"
+	@echo "  agent              - Build and run single agent + server"
+	@echo "  agents             - Build and run 7 test agents + server"
+	@echo "  stop               - Stop all gobservability processes"
+	@echo "  install-proto-deps - Install protobuf Go generators"
+	@echo "  proto              - Generate Go code from proto files"
+	@echo "  clean-proto        - Remove generated protobuf files"
+	@echo "  help               - Show this help"
 
 .DEFAULT_GOAL := help
