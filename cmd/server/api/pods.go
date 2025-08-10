@@ -1,20 +1,15 @@
 package api
 
 import (
-	"github.com/ThomasCardin/peek/cmd/server/compute"
+	"github.com/ThomasCardin/peek/cmd/server/formatter"
 	"github.com/ThomasCardin/peek/shared/types"
 )
 
-// calculateUIPods converts raw Pod data to UIPod with computed metrics
-func calculateUIPods(pods []*types.Pod) []compute.UIPod {
-	return calculateUIPodsWithNodeContext(pods, nil)
-}
-
-// calculateUIPodsWithNodeContext converts raw Pod data to UIPod with node context for real calculations
-func calculateUIPodsWithNodeContext(pods []*types.Pod, nodeStats *types.NodeStatsPayload) []compute.UIPod {
-	var uiPods []compute.UIPod
+// formatPodsForUI formats pod data for UI display
+func formatPodsForUI(pods []*types.Pod) []formatter.UIPod {
+	var uiPods []formatter.UIPod
 	for _, pod := range pods {
-		uiPod := compute.CalculateUIPodWithNodeContext(pod, nodeStats)
+		uiPod := formatter.FormatPodForUI(pod)
 		uiPods = append(uiPods, uiPod)
 	}
 	return uiPods

@@ -3,19 +3,17 @@ package api
 import (
 	"sort"
 
-	"github.com/ThomasCardin/peek/cmd/server/compute"
+	"github.com/ThomasCardin/peek/cmd/server/formatter"
 	"github.com/ThomasCardin/peek/cmd/server/storage"
 )
 
-func getUINodes() []compute.UINode {
+func getUINodes() []formatter.UINode {
 	nodes := storage.GlobalStore.GetAllNodes()
-	var uiNodes []compute.UINode
+	var uiNodes []formatter.UINode
 
 	for name, stats := range nodes {
-		// Always recalculate UINode to ensure fresh data (no cache)
-		// This ensures nodes reflect real-time changes from pods
-		uiNode := compute.CalculateUINode(name, stats)
-		storage.GlobalStore.StoreUINode(name, uiNode)
+		// Format node for UI display
+		uiNode := formatter.FormatNodeForUI(name, stats)
 		uiNodes = append(uiNodes, uiNode)
 	}
 
@@ -26,15 +24,13 @@ func getUINodes() []compute.UINode {
 	return uiNodes
 }
 
-func getUINode(nodeName string) (*compute.UINode, bool) {
-	// Get raw stats and always recalculate UINode (no cache)
-	// This ensures nodes reflect real-time changes from pods
+func getUINode(nodeName string) (*formatter.UINode, bool) {
+	// Get raw stats and format for UI display
 	stats, found := storage.GlobalStore.GetNodeStats(nodeName)
 	if !found {
 		return nil, false
 	}
 
-	uiNode := compute.CalculateUINode(nodeName, stats)
-	storage.GlobalStore.StoreUINode(nodeName, uiNode)
+	uiNode := formatter.FormatNodeForUI(nodeName, stats)
 	return &uiNode, true
 }

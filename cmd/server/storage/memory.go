@@ -19,10 +19,12 @@ func NewCacheStore(defaultExpiration, cleanupInterval time.Duration) *CacheStore
 	}
 }
 
+// StoreNodeStats stores incoming node statistics from agents
 func (s *CacheStore) StoreNodeStats(stats types.NodeStatsPayload) {
 	s.cache.Set(stats.NodeName, stats, cache.DefaultExpiration)
 }
 
+// GetAllNodes returns all stored node statistics
 func (s *CacheStore) GetAllNodes() map[string]*types.NodeStatsPayload {
 	result := make(map[string]*types.NodeStatsPayload)
 
@@ -35,6 +37,7 @@ func (s *CacheStore) GetAllNodes() map[string]*types.NodeStatsPayload {
 	return result
 }
 
+// GetNodeStats returns statistics for a specific node
 func (s *CacheStore) GetNodeStats(nodeName string) (*types.NodeStatsPayload, bool) {
 	if item, found := s.cache.Get(nodeName); found {
 		if stats, ok := item.(types.NodeStatsPayload); ok {
@@ -44,28 +47,7 @@ func (s *CacheStore) GetNodeStats(nodeName string) (*types.NodeStatsPayload, boo
 	return nil, false
 }
 
+// GetCacheStats returns cache statistics for monitoring
 func (s *CacheStore) GetCacheStats() (int, int) {
 	return s.cache.ItemCount(), len(s.cache.Items())
-}
-
-// UINode cache methods
-func (s *CacheStore) StoreUINode(nodeName string, uiNode interface{}) {
-	s.cache.Set("ui_"+nodeName, uiNode, cache.DefaultExpiration)
-}
-
-func (s *CacheStore) GetUINode(nodeName string) (interface{}, bool) {
-	return s.cache.Get("ui_" + nodeName)
-}
-
-func (s *CacheStore) GetAllUINodes() map[string]interface{} {
-	result := make(map[string]interface{})
-
-	for key, item := range s.cache.Items() {
-		if len(key) > 3 && key[:3] == "ui_" {
-			nodeName := key[3:]
-			result[nodeName] = item.Object
-		}
-	}
-
-	return result
 }

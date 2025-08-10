@@ -1,9 +1,11 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
 
-	"github.com/ThomasCardin/peek/cmd/server/compute"
+	"github.com/ThomasCardin/peek/cmd/server/formatter"
 	"github.com/ThomasCardin/peek/cmd/server/storage"
 	"github.com/ThomasCardin/peek/shared/types"
 	"github.com/gin-gonic/gin"
@@ -52,13 +54,13 @@ func PodsHandler(c *gin.Context) {
 	if !uiFound {
 		c.HTML(http.StatusOK, "pods.html", gin.H{
 			"NodeName": nodeName,
-			"Pods":     calculateUIPods(nodeStats.Metrics.Pods),
+			"Pods":     formatPodsForUI(nodeStats.Metrics.Pods),
 		})
 		return
 	}
 
 	// Calculate UIPods with metrics using real node context
-	uiPods := calculateUIPodsWithNodeContext(nodeStats.Metrics.Pods, nodeStats)
+	uiPods := formatPodsForUI(nodeStats.Metrics.Pods)
 
 	c.HTML(http.StatusOK, "pods.html", gin.H{
 		"NodeName":     uiNode.Name,
@@ -97,9 +99,9 @@ func PodsFragmentHandler(c *gin.Context) {
 
 	// Get node data for pods
 	nodeStats, found := storage.GlobalStore.GetNodeStats(nodeName)
-	var uiPods []compute.UIPod
+	var uiPods []formatter.UIPod
 	if found {
-		uiPods = calculateUIPodsWithNodeContext(nodeStats.Metrics.Pods, nodeStats)
+		uiPods = formatPodsForUI(nodeStats.Metrics.Pods)
 	}
 
 	c.HTML(http.StatusOK, "pods-fragment.html", gin.H{
@@ -235,8 +237,8 @@ func ProcessDetailsPageHandler(c *gin.Context) {
 	// Get UINode from cache for node metrics
 	uiNode, uiFound := getUINode(nodeName)
 
-	// Calculate UIPod for this specific pod with node context
-	uiPod := compute.CalculateUIPodWithNodeContext(targetPod, nodeStats)
+	// Format pod for UI display
+	uiPod := formatter.FormatPodForUI(targetPod)
 
 	if !uiFound {
 		c.HTML(http.StatusOK, "process-details.html", gin.H{
@@ -310,8 +312,8 @@ func PodInfoHandler(c *gin.Context) {
 		return
 	}
 
-	// Calculate UIPod for this specific pod with node context
-	uiPod := compute.CalculateUIPodWithNodeContext(targetPod, nodeStats)
+	// Format pod for UI display
+	uiPod := formatter.FormatPodForUI(targetPod)
 
 	c.HTML(http.StatusOK, "pod-info-fragment.html", gin.H{
 		"Pod": &uiPod,
@@ -362,4 +364,80 @@ func ProcessDetailsFragmentHandler(c *gin.Context) {
 		"PID":            targetPod.PID,
 		"ProcessDetails": &targetPod.PidDetails,
 	})
+}
+
+// GenerateFlamegraphHandler generates a flamegraph for a specific pod
+func GenerateFlamegraphHandler(c *gin.Context) {
+	nodeName := c.Param("nodename")
+	podName := c.Param("podname")
+
+	if nodeName == "" || podName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Node name and pod name required"})
+		return
+	}
+
+	// Get optional query parameters
+	duration, err := strconv.Atoi(c.DefaultQuery("duration", "30"))
+	if err != nil || duration <= 0 || duration > 300 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid duration (1-300 seconds)"})
+		return
+	}
+
+	format := c.DefaultQuery("format", "svg")
+	if format != "svg" && format != "folded" && format != "txt" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid format (svg, folded, txt)"})
+		return
+	}
+
+	// Verify the pod exists
+	nodeStats, found := storage.GlobalStore.GetNodeStats(nodeName)
+	if !found {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Node not found"})
+		return
+	}
+
+	var targetPod *types.Pod
+	for _, pod := range nodeStats.Metrics.Pods {
+		if pod.Name == podName {
+			targetPod = pod
+			break
+		}
+	}
+
+	if targetPod == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Pod not found"})
+		return
+	}
+
+	if targetPod.PID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Pod has no valid PID"})
+		return
+	}
+
+	// TODO: For now, return a placeholder response
+	// Later this will use bidirectional gRPC streaming to request from the agent
+	placeholderData := fmt.Sprintf(`Mock flamegraph for:
+Node: %s
+Pod: %s
+PID: %d
+Duration: %d seconds
+Format: %s
+
+This is a placeholder - real implementation will use gRPC streaming to agent.`, 
+		nodeName, podName, targetPod.PID, duration, format)
+
+	// Set appropriate content type based on format
+	switch format {
+	case "svg":
+		c.Header("Content-Type", "image/svg+xml")
+		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s-%s-flamegraph.svg", nodeName, podName))
+	case "txt":
+		c.Header("Content-Type", "text/plain")
+		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s-%s-flamegraph.txt", nodeName, podName))
+	case "folded":
+		c.Header("Content-Type", "text/plain")
+		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s-%s-flamegraph-folded.txt", nodeName, podName))
+	}
+
+	c.String(http.StatusOK, placeholderData)
 }

@@ -1,32 +1,25 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"flag"
-	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"time"
 
-	"github.com/ThomasCardin/peek/cmd/agent/internal"
-	"github.com/ThomasCardin/peek/cmd/agent/pkg"
-	"github.com/ThomasCardin/peek/shared/types"
+	grpcClient "github.com/ThomasCardin/peek/cmd/agent/grpc"
+	"github.com/ThomasCardin/peek/cmd/agent/pkg/collector"
 )
 
 const (
-	HTTP_API_STATS = "/api/stats"
-
-	DEFAULT_NODE_NAME   = "unknown"
-	DEFAULT_SERVER_ADDR = "http://localhost:8080"
+	DEFAULT_NODE_NAME = "unknown"
+	DEFAULT_GRPC_ADDR = "localhost:9090"
 
 	ENV_NODE_NAME = "NODE_NAME"
 	ENV_DEV_MODE  = "DEV_MODE"
 )
 
 var (
-	serverURL       = flag.String("server", DEFAULT_SERVER_ADDR, "Server URL")
+	grpcAddr        = flag.String("grpc-server", DEFAULT_GRPC_ADDR, "Server gRPC address")
 	collectInterval = flag.Duration("interval", 5*time.Second, "Collect interval")
 	hostname        = flag.String("hostname", DEFAULT_NODE_NAME, "Custom hostname (overrides NODE_NAME env var)")
 	dev             = flag.Bool("dev", false, "Development mode (use / instead of /host)")
@@ -58,78 +51,24 @@ func main() {
 		}
 	}
 
-	log.Printf("gobservability node started %s scrapping at %s interval", nodeName, collectInterval)
+	log.Printf("Starting gobservability agent for node: %s", nodeName)
+	log.Printf("Metrics collection interval: %s", *collectInterval)
+	log.Printf("gRPC server address: %s", *grpcAddr)
 
-	ticker := time.NewTicker(*collectInterval)
-	defer ticker.Stop()
-
-	for {
-		cpuStats, err := internal.ProcStat(ENV_DEV_MODE)
-		if err != nil {
-			log.Printf("%v", err.Error())
-			continue
-		}
-
-		memStats, err := internal.ProcMeminfo(ENV_DEV_MODE)
-		if err != nil {
-			log.Printf("%v", err.Error())
-			continue
-		}
-
-		netStats, err := internal.ProcNetDev(ENV_DEV_MODE)
-		if err != nil {
-			log.Printf("%v", err.Error())
-			continue
-		}
-
-		diskStats, err := internal.ProcDiskstats(ENV_DEV_MODE)
-		if err != nil {
-			log.Printf("%v", err.Error())
-			continue
-		}
-
-		pods, err := pkg.GetPodsPID(ENV_DEV_MODE, nodeName)
-		if err != nil {
-			log.Printf("%v", err.Error())
-		}
-
-		payload := types.NodeStatsPayload{
-			NodeName:  nodeName,
-			Timestamp: time.Now(),
-			Metrics: types.NodeMetrics{
-				CPU:     cpuStats,
-				Memory:  memStats,
-				Network: netStats,
-				Disk:    diskStats,
-				Pods:    pods,
-			},
-		}
-
-		if err := sendStats(*serverURL, payload); err != nil {
-			log.Printf("%s", err.Error())
-		} else {
-			log.Printf("%s sent for %s", HTTP_API_STATS, nodeName)
-		}
-
-		<-ticker.C
-	}
-}
-
-func sendStats(serverURL string, payload types.NodeStatsPayload) error {
-	jsonData, err := json.Marshal(payload)
+	// Initialize gRPC connection to server
+	log.Printf("Connecting to gRPC server...")
+	grpcSender, err := grpcClient.NewGRPCClient(*grpcAddr, ENV_DEV_MODE)
 	if err != nil {
-		return fmt.Errorf("error: JSON: %v", err)
+		log.Fatalf("Failed to create gRPC client: %v", err)
 	}
+	defer grpcSender.Close()
+	log.Printf("Successfully connected to gRPC server")
 
-	resp, err := http.Post(fmt.Sprintf("%s%s", serverURL, HTTP_API_STATS), "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return fmt.Errorf("error: HTTP POST: %v", err)
-	}
-	defer resp.Body.Close()
+	// Initialize metrics collector with gRPC client
+	metricsCollector := collector.NewCollector(ENV_DEV_MODE, grpcSender)
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("error: server returned: %d", resp.StatusCode)
-	}
-
-	return nil
+	// Start the main collection and sending loop
+	log.Printf("Starting metrics collection and gRPC transmission loop...")
+	log.Printf("Will collect and send metrics every %s via gRPC", *collectInterval)
+	metricsCollector.Start(nodeName, *collectInterval)
 }
