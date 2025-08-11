@@ -55,14 +55,18 @@ func main() {
 	log.Printf("Metrics collection interval: %s", *collectInterval)
 	log.Printf("gRPC server address: %s", *grpcAddr)
 
-	// Initialize gRPC connection to server
-	log.Printf("Connecting to gRPC server...")
-	grpcSender, err := grpcClient.NewGRPCClient(*grpcAddr, ENV_DEV_MODE)
+	// Initialize streaming gRPC connection to server
+	log.Printf("Connecting to gRPC server with bidirectional streaming...")
+	devModeValue := "false"
+	if _, ok := os.LookupEnv(ENV_DEV_MODE); ok {
+		devModeValue = "true"
+	}
+	grpcSender, err := grpcClient.NewStreamingGRPCClient(*grpcAddr, nodeName, devModeValue)
 	if err != nil {
-		log.Fatalf("Failed to create gRPC client: %v", err)
+		log.Fatalf("Failed to create streaming gRPC client: %v", err)
 	}
 	defer grpcSender.Close()
-	log.Printf("Successfully connected to gRPC server")
+	log.Printf("Successfully connected to gRPC server with streaming")
 
 	// Initialize metrics collector with gRPC client
 	metricsCollector := collector.NewCollector(ENV_DEV_MODE, grpcSender)

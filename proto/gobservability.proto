@@ -29,6 +29,7 @@ message FlamegraphRequest {
   string pod_name = 2;     // Optional - if empty, generates for entire node
   int32 duration = 3;      // Duration in seconds
   string format = 4;       // Output format: "svg", "txt", "folded"
+  string request_id = 5;   // Unique request ID for matching responses
 }
 
 // Flamegraph generation response
@@ -36,6 +37,7 @@ message FlamegraphResponse {
   bytes flamegraph_data = 1; // Generated flamegraph content
   string format = 2;         // Actual format returned
   string error = 3;          // Error message if generation failed
+  string request_id = 4;     // Request ID to match with request
 }
 
 // Metrics struct type based on shared/types/*

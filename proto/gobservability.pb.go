@@ -130,9 +130,10 @@ func (x *StatsResponse) GetStatus() string {
 type FlamegraphRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	NodeName      string                 `protobuf:"bytes,1,opt,name=node_name,json=nodeName,proto3" json:"node_name,omitempty"`
-	PodName       string                 `protobuf:"bytes,2,opt,name=pod_name,json=podName,proto3" json:"pod_name,omitempty"` // Optional - if empty, generates for entire node
-	Duration      int32                  `protobuf:"varint,3,opt,name=duration,proto3" json:"duration,omitempty"`             // Duration in seconds
-	Format        string                 `protobuf:"bytes,4,opt,name=format,proto3" json:"format,omitempty"`                  // Output format: "svg", "txt", "folded"
+	PodName       string                 `protobuf:"bytes,2,opt,name=pod_name,json=podName,proto3" json:"pod_name,omitempty"`       // Optional - if empty, generates for entire node
+	Duration      int32                  `protobuf:"varint,3,opt,name=duration,proto3" json:"duration,omitempty"`                   // Duration in seconds
+	Format        string                 `protobuf:"bytes,4,opt,name=format,proto3" json:"format,omitempty"`                        // Output format: "svg", "txt", "folded"
+	RequestId     string                 `protobuf:"bytes,5,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"` // Unique request ID for matching responses
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -195,12 +196,20 @@ func (x *FlamegraphRequest) GetFormat() string {
 	return ""
 }
 
+func (x *FlamegraphRequest) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
 // Flamegraph generation response
 type FlamegraphResponse struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	FlamegraphData []byte                 `protobuf:"bytes,1,opt,name=flamegraph_data,json=flamegraphData,proto3" json:"flamegraph_data,omitempty"` // Generated flamegraph content
 	Format         string                 `protobuf:"bytes,2,opt,name=format,proto3" json:"format,omitempty"`                                       // Actual format returned
 	Error          string                 `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`                                         // Error message if generation failed
+	RequestId      string                 `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`                // Request ID to match with request
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -252,6 +261,13 @@ func (x *FlamegraphResponse) GetFormat() string {
 func (x *FlamegraphResponse) GetError() string {
 	if x != nil {
 		return x.Error
+	}
+	return ""
+}
+
+func (x *FlamegraphResponse) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
 	}
 	return ""
 }
@@ -1771,16 +1787,20 @@ const file_proto_gobservability_proto_rawDesc = "" +
 	"\ttimestamp\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x125\n" +
 	"\ametrics\x18\x03 \x01(\v2\x1b.gobservability.NodeMetricsR\ametrics\"'\n" +
 	"\rStatsResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status\"\x7f\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status\"\x9e\x01\n" +
 	"\x11FlamegraphRequest\x12\x1b\n" +
 	"\tnode_name\x18\x01 \x01(\tR\bnodeName\x12\x19\n" +
 	"\bpod_name\x18\x02 \x01(\tR\apodName\x12\x1a\n" +
 	"\bduration\x18\x03 \x01(\x05R\bduration\x12\x16\n" +
-	"\x06format\x18\x04 \x01(\tR\x06format\"k\n" +
+	"\x06format\x18\x04 \x01(\tR\x06format\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x05 \x01(\tR\trequestId\"\x8a\x01\n" +
 	"\x12FlamegraphResponse\x12'\n" +
 	"\x0fflamegraph_data\x18\x01 \x01(\fR\x0eflamegraphData\x12\x16\n" +
 	"\x06format\x18\x02 \x01(\tR\x06format\x12\x14\n" +
-	"\x05error\x18\x03 \x01(\tR\x05error\"\xfe\x01\n" +
+	"\x05error\x18\x03 \x01(\tR\x05error\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x04 \x01(\tR\trequestId\"\xfe\x01\n" +
 	"\vNodeMetrics\x12*\n" +
 	"\x03cpu\x18\x01 \x01(\v2\x18.gobservability.CPUStatsR\x03cpu\x123\n" +
 	"\x06memory\x18\x02 \x01(\v2\x1b.gobservability.MemoryStatsR\x06memory\x126\n" +
