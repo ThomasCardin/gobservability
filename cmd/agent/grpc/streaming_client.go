@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ThomasCardin/peek/cmd/agent/pkg/flamegraph"
-	pb "github.com/ThomasCardin/peek/proto"
-	sharedGrpc "github.com/ThomasCardin/peek/shared/grpc"
-	"github.com/ThomasCardin/peek/shared/types"
+	"github.com/ThomasCardin/gobservability/cmd/agent/pkg/flamegraph"
+	pb "github.com/ThomasCardin/gobservability/proto"
+	sharedGrpc "github.com/ThomasCardin/gobservability/shared/grpc"
+	"github.com/ThomasCardin/gobservability/shared/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -34,7 +34,7 @@ type StreamingGRPCClient struct {
 func NewStreamingGRPCClient(serverAddr, nodeName, devMode string) (*StreamingGRPCClient, error) {
 	conn, err := grpc.NewClient(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to gRPC server: %v", err)
+		return nil, fmt.Errorf("error: failed to connect to gRPC server: %v", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -67,7 +67,7 @@ func (c *StreamingGRPCClient) establishStream() error {
 
 	stream, err := client.AgentStream(c.ctx)
 	if err != nil {
-		return fmt.Errorf("failed to create stream: %v", err)
+		return fmt.Errorf("error: failed to create stream: %v", err)
 	}
 
 	c.stream = stream
@@ -83,10 +83,10 @@ func (c *StreamingGRPCClient) establishStream() error {
 	}
 
 	if err := c.stream.Send(hello); err != nil {
-		return fmt.Errorf("failed to send hello: %v", err)
+		return fmt.Errorf("error: failed to send hello: %v", err)
 	}
 
-	log.Printf("Established streaming connection with server for node %s", c.nodeName)
+	log.Printf("node %s connected to server", c.nodeName)
 	return nil
 }
 
@@ -95,22 +95,20 @@ func (c *StreamingGRPCClient) handleIncomingMessages() {
 	for {
 		msg, err := c.stream.Recv()
 		if err == io.EOF {
-			log.Printf("Server closed the stream")
+			log.Printf("server closed the stream")
 			c.reconnect()
 			return
 		}
 		if err != nil {
-			log.Printf("Error receiving message: %v", err)
+			log.Printf("error: receiving message: %v", err)
 			c.reconnect()
 			return
 		}
 
 		switch m := msg.Message.(type) {
 		case *pb.ServerMessage_Ack:
-			log.Printf("Received ack from server: %s", m.Ack.Message)
-
+			log.Printf("received ack from server: %s", m.Ack.Message)
 		case *pb.ServerMessage_FlamegraphRequest:
-			// Handle flamegraph request
 			go c.handleFlamegraphRequest(m.FlamegraphRequest)
 		}
 	}
@@ -118,7 +116,7 @@ func (c *StreamingGRPCClient) handleIncomingMessages() {
 
 // handleFlamegraphRequest processes flamegraph generation requests
 func (c *StreamingGRPCClient) handleFlamegraphRequest(req *pb.FlamegraphRequest) {
-	log.Printf("Received flamegraph request for pod %s, duration %ds", req.PodName, req.Duration)
+	log.Printf("[FLAMEGRAPH] received flamegraph request for pod %s, duration %ds", req.PodName, req.Duration)
 
 	// Get current pods
 	c.mu.RLock()
@@ -127,7 +125,32 @@ func (c *StreamingGRPCClient) handleFlamegraphRequest(req *pb.FlamegraphRequest)
 
 	// Generate flamegraph
 	pid := c.flamegraphGen.GetPIDForPod(req.PodName, pods)
-	data, err := c.flamegraphGen.GenerateFlamegraph(req.NodeName, req.PodName, req.Duration, req.Format, pid)
+	log.Printf("[FLAMEGRAPH] found PID %d for pod %s", pid, req.PodName)
+
+	if pid <= 0 {
+		log.Printf("[FLAMEGRAPH] error: no valid PID found for pod %s", req.PodName)
+		response := &pb.AgentMessage{
+			Message: &pb.AgentMessage_FlamegraphResponse{
+				FlamegraphResponse: &pb.FlamegraphResponse{
+					Error:     fmt.Sprintf("[FLAMEGRAPH] error: no valid PID found for pod %s", req.PodName),
+					RequestId: req.RequestId,
+				},
+			},
+		}
+		if err := c.stream.Send(response); err != nil {
+			log.Printf("[FLAMEGRAPH] error: failed to send error response: %v", err)
+		}
+		return
+	}
+
+	log.Printf("[FLAMEGRAPH] generating flamegraph for PID %d, duration %ds", pid, req.Duration)
+	data, err := c.flamegraphGen.GenerateFlamegraph(req.NodeName, req.PodName, req.Duration, pid)
+
+	if err != nil {
+		log.Printf("[FLAMEGRAPH] error: generating flamegraph: %v", err)
+	} else {
+		log.Printf("[FLAMEGRAPH] successfully generated flamegraph, data size: %d bytes", len(data))
+	}
 
 	// Prepare response
 	response := &pb.AgentMessage{
@@ -145,8 +168,11 @@ func (c *StreamingGRPCClient) handleFlamegraphRequest(req *pb.FlamegraphRequest)
 	}
 
 	// Send response
+	log.Printf("[FLAMEGRAPH] sending flamegraph response for request %s", req.RequestId)
 	if err := c.stream.Send(response); err != nil {
-		log.Printf("Failed to send flamegraph response: %v", err)
+		log.Printf("[FLAMEGRAPH] error: failed to send flamegraph response: %v", err)
+	} else {
+		log.Printf("[FLAMEGRAPH] successfully sent flamegraph response for request %s", req.RequestId)
 	}
 }
 
@@ -169,7 +195,7 @@ func (c *StreamingGRPCClient) Send(payload *types.NodeStatsPayload) error {
 	}
 
 	if err := c.stream.Send(stats); err != nil {
-		return fmt.Errorf("failed to send stats: %v", err)
+		return fmt.Errorf("error: failed to send stats: %v", err)
 	}
 
 	return nil
@@ -177,7 +203,7 @@ func (c *StreamingGRPCClient) Send(payload *types.NodeStatsPayload) error {
 
 // reconnect attempts to re-establish the connection
 func (c *StreamingGRPCClient) reconnect() {
-	log.Printf("Attempting to reconnect...")
+	log.Printf("attempting to reconnect...")
 
 	// Cancel existing context
 	c.cancel()
@@ -191,7 +217,7 @@ func (c *StreamingGRPCClient) reconnect() {
 
 	for {
 		if err := c.establishStream(); err != nil {
-			log.Printf("Reconnection failed: %v, retrying in %s", err, retryDelay)
+			log.Printf("error: reconnection failed: %v, retrying in %s", err, retryDelay)
 			time.Sleep(retryDelay)
 
 			// Exponential backoff

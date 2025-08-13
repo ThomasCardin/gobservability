@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ThomasCardin/peek/shared/types"
+	"github.com/ThomasCardin/gobservability/shared/types"
 	gocache "github.com/patrickmn/go-cache"
 )
 

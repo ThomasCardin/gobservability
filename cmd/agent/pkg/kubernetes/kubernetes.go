@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ThomasCardin/peek/cmd/agent/internal"
-	"github.com/ThomasCardin/peek/cmd/agent/shared"
-	"github.com/ThomasCardin/peek/shared/types"
+	"github.com/ThomasCardin/gobservability/cmd/agent/internal"
+	"github.com/ThomasCardin/gobservability/cmd/agent/shared"
+	"github.com/ThomasCardin/gobservability/shared/types"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"

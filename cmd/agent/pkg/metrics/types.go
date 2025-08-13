@@ -3,7 +3,7 @@ package metrics
 import (
 	"time"
 
-	"github.com/ThomasCardin/peek/shared/types"
+	"github.com/ThomasCardin/gobservability/shared/types"
 )
 
 // NodeCache stores previous metrics for delta calculations

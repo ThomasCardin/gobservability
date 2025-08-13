@@ -1,6 +1,6 @@
 package kubernetes
 
-import "github.com/ThomasCardin/peek/shared/types"
+import "github.com/ThomasCardin/gobservability/shared/types"
 
 // Generate fake data for development with realistic metrics
 func generateFakePods(nodeName string) []*types.Pod {
@@ -8,7 +8,7 @@ func generateFakePods(nodeName string) []*types.Pod {
 		{
 			Name:        "nginx-deployment-abc123",
 			ContainerID: "docker://1234567890abcdef",
-			PID:         1234,
+			PID:         1,
 			PodMetrics: types.PodMetrics{
 				CPU: types.PodCPUStats{
 					UTime:      12340,
@@ -71,7 +71,7 @@ func generateFakePods(nodeName string) []*types.Pod {
 		{
 			Name:        "redis-server-xyz789",
 			ContainerID: "containerd://fedcba0987654321",
-			PID:         5678,
+			PID:         1,
 			PodMetrics: types.PodMetrics{
 				CPU: types.PodCPUStats{
 					UTime:      23450,
@@ -128,7 +128,7 @@ func generateFakePods(nodeName string) []*types.Pod {
 		{
 			Name:        "api-service-def456",
 			ContainerID: "docker://abcdef1234567890",
-			PID:         9012,
+			PID:         1,
 			PodMetrics: types.PodMetrics{
 				CPU: types.PodCPUStats{
 					UTime:      45600,
@@ -189,7 +189,7 @@ func generateFakePods(nodeName string) []*types.Pod {
 		{
 			Name:        "postgres-db-ghi789",
 			ContainerID: "containerd://567890abcdef1234",
-			PID:         3456,
+			PID:         1,
 			PodMetrics: types.PodMetrics{
 				CPU: types.PodCPUStats{
 					UTime:      67800,

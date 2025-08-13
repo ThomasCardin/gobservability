@@ -1,8 +1,8 @@
 package grpc
 
 import (
-	pb "github.com/ThomasCardin/peek/proto"
-	"github.com/ThomasCardin/peek/shared/types"
+	pb "github.com/ThomasCardin/gobservability/proto"
+	"github.com/ThomasCardin/gobservability/shared/types"
 )
 
 // Conversions from Go types to gRPC protobuf (for agent -> server)

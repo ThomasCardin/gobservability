@@ -12,7 +12,7 @@ type MemoryStats struct {
 	SwapCached   int `json:"swap_cached"`
 	SwapTotal    int `json:"swap_total"`
 	SwapFree     int `json:"swap_free"`
-	
+
 	// Calculated values by agent
 	MemoryPercent float64 `json:"memory_percent"` // Memory usage percentage
 }

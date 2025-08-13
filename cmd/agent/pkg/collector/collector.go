@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ThomasCardin/peek/cmd/agent/pkg/kubernetes"
-	"github.com/ThomasCardin/peek/cmd/agent/pkg/metrics"
-	"github.com/ThomasCardin/peek/shared/types"
+	"github.com/ThomasCardin/gobservability/cmd/agent/pkg/kubernetes"
+	"github.com/ThomasCardin/gobservability/cmd/agent/pkg/metrics"
+	"github.com/ThomasCardin/gobservability/shared/types"
 )
 
 type Collector struct {

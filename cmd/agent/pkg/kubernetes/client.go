@@ -1,7 +1,7 @@
 package kubernetes
 
 import (
-	"github.com/ThomasCardin/peek/shared/types"
+	"github.com/ThomasCardin/gobservability/shared/types"
 )
 
 // Client provides Kubernetes functionality
