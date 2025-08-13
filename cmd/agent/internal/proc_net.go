@@ -2,7 +2,7 @@ package internal
 
 import (
 	"bufio"
-	"fmt"
+	"errors"
 	"os"
 	"strconv"
 	"strings"
@@ -20,7 +20,7 @@ func ProcNetDev(devMode string) (*types.NetworkStats, error) {
 	procNetDevPath := getProcNetDev(devMode)
 	file, err := os.Open(procNetDevPath)
 	if err != nil {
-		return nil, fmt.Errorf("error: opening %s %v", procNetDevPath, err)
+		return nil, errors.New("failed to open proc net/dev")
 	}
 	defer file.Close()
 
@@ -61,7 +61,7 @@ func ProcNetDev(devMode string) (*types.NetworkStats, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error: reading %s: %v", procNetDevPath, err)
+		return nil, errors.New("failed to read proc net/dev")
 	}
 
 	return netStats, nil

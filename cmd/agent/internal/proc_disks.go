@@ -2,7 +2,7 @@ package internal
 
 import (
 	"bufio"
-	"fmt"
+	"errors"
 	"os"
 	"strconv"
 	"strings"
@@ -20,7 +20,7 @@ func ProcDiskstats(devMode string) (*types.DiskStats, error) {
 	procDiskstatsPath := getProcDiskstats(devMode)
 	file, err := os.Open(procDiskstatsPath)
 	if err != nil {
-		return nil, fmt.Errorf("error: opening %s %v", procDiskstatsPath, err)
+		return nil, errors.New("failed to open proc diskstats")
 	}
 	defer file.Close()
 
@@ -62,7 +62,7 @@ func ProcDiskstats(devMode string) (*types.DiskStats, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error: reading %s: %v", procDiskstatsPath, err)
+		return nil, errors.New("failed to read proc diskstats")
 	}
 
 	return diskStats, nil

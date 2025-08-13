@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"time"
 
@@ -34,9 +34,9 @@ func main() {
 
 	if *dev {
 		os.Setenv(ENV_DEV_MODE, "true")
-		log.Printf("[ENV] Development mode enabled - using / paths")
+		slog.Info("development mode enabled - using / paths", "component", "env")
 	} else {
-		log.Printf("[ENV] Production mode - using /host paths")
+		slog.Info("production mode - using /host paths", "component", "env")
 	}
 
 	// Priority: flag hostname > NODE_NAME env var > system hostname
@@ -45,22 +45,21 @@ func main() {
 	} else if envNodeName, found := os.LookupEnv(ENV_NODE_NAME); found {
 		nodeName = envNodeName
 	} else {
-		log.Printf("[ENV] Warning: %s not set, using system hostname", ENV_NODE_NAME)
+		slog.Warn("env var not set, using system hostname", "component", "env", "env_var", ENV_NODE_NAME)
 		nodeName, err = os.Hostname()
 		if err != nil {
 			nodeName = DEFAULT_NODE_NAME
 		}
 	}
 
-	log.Printf("[ENV] Starting gobservability agent for node: %s", nodeName)
-	log.Printf("[ENV] Metrics collection interval: %s", *collectInterval)
-	log.Printf("[ENV] gRPC server address: %s", *grpcAddr)
+	slog.Info("starting gobservability agent", "component", "env", "node", nodeName, "interval", *collectInterval, "grpc_addr", *grpcAddr)
 
 	// Initialize streaming gRPC connection to server
 	devModeValue := fmt.Sprintf("%t", *dev)
 	grpcSender, err := grpcClient.NewStreamingGRPCClient(*grpcAddr, nodeName, devModeValue)
 	if err != nil {
-		log.Fatalf("error: failed to create streaming gRPC client: %v", err)
+		slog.Error("failed to create streaming gRPC client", "error", err)
+		os.Exit(1)
 	}
 	defer grpcSender.Close()
 

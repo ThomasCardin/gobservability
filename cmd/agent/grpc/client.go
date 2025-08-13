@@ -2,7 +2,7 @@ package grpc
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/ThomasCardin/gobservability/cmd/agent/pkg/flamegraph"
@@ -30,7 +30,7 @@ type GRPCClient struct {
 func NewGRPCClient(serverAddr, devMode string) (*GRPCClient, error) {
 	conn, err := grpc.NewClient(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return nil, fmt.Errorf("error: failed to connect to gRPC server: %v", err)
+		return nil, errors.New("failed to connect to gRPC server")
 	}
 
 	client := pb.NewNodeServiceClient(conn)
@@ -59,11 +59,11 @@ func (c *GRPCClient) Send(payload *types.NodeStatsPayload) error {
 
 	resp, err := c.client.SendStats(ctx, req)
 	if err != nil {
-		return fmt.Errorf("error: gRPC SendStats failed: %v", err)
+		return errors.New("gRPC SendStats failed")
 	}
 
 	if resp.Status != "received" {
-		return fmt.Errorf("error: server rejected data, status: %s", resp.Status)
+		return errors.New("server rejected data")
 	}
 
 	return nil
@@ -80,7 +80,7 @@ func (c *GRPCClient) GenerateFlamegraph(nodeName, podName string, duration int32
 	pid := c.flamegraphGen.GetPIDForPod(podName, c.currentPods)
 	data, err := c.flamegraphGen.GenerateFlamegraph(nodeName, podName, duration, pid)
 	if err != nil {
-		return nil, fmt.Errorf("error: failed to generate flamegraph %s", err.Error())
+		return nil, errors.New("failed to generate flamegraph")
 	}
 
 	return data, nil

@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -107,7 +108,7 @@ func getContainerID(podName string, containerStatuses []v1.ContainerStatus) ([]s
 	}
 
 	if len(containers) == 0 {
-		return nil, fmt.Errorf("no containers found for pod %s", podName)
+		return nil, errors.New("no containers found for pod")
 	}
 
 	return containers, nil
@@ -156,5 +157,5 @@ func getPID(devMode, containerID string) (int, error) {
 		cgroupFile.Close()
 	}
 
-	return -1, fmt.Errorf("PID not found for container %s", containerID)
+	return -1, errors.New("PID not found for container")
 }

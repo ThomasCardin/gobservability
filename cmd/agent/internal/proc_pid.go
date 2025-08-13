@@ -2,6 +2,7 @@ package internal
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -375,7 +376,7 @@ func ProcPIDStatm(devMode string, pid int) (uint64, uint64, uint64, uint64, erro
 // CollectPodMetrics combines all PID-based metrics collection
 func CollectPodMetrics(devMode string, pid int) (*types.PodMetrics, *types.PidDetails, error) {
 	if pid <= 0 {
-		return nil, nil, fmt.Errorf("invalid PID: %d", pid)
+		return nil, nil, errors.New("invalid PID")
 	}
 
 	// Collect CPU stats and basic process details

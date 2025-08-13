@@ -1,7 +1,7 @@
 package collector
 
 import (
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/ThomasCardin/gobservability/cmd/agent/internal"
@@ -26,22 +26,22 @@ func NewNodeCollector(cache *metrics.Cache, calculator *metrics.Calculator, devM
 func (nc *NodeCollector) CollectNodeMetrics(nodeName string) (*types.NodeMetrics, error) {
 	cpu, err := internal.ProcStat(nc.devMode)
 	if err != nil {
-		return nil, fmt.Errorf("error: failed to read CPU stats: %v", err)
+		return nil, errors.New("failed to read CPU stats")
 	}
 
 	memory, err := internal.ProcMeminfo(nc.devMode)
 	if err != nil {
-		return nil, fmt.Errorf("error: failed to read memory stats: %v", err)
+		return nil, errors.New("failed to read memory stats")
 	}
 
 	network, err := internal.ProcNetDev(nc.devMode)
 	if err != nil {
-		return nil, fmt.Errorf("error: failed to read network stats: %v", err)
+		return nil, errors.New("failed to read network stats")
 	}
 
 	disk, err := internal.ProcDiskstats(nc.devMode)
 	if err != nil {
-		return nil, fmt.Errorf("error: failed to read disk stats: %v", err)
+		return nil, errors.New("failed to read disk stats")
 	}
 
 	// Get previous metrics from cache

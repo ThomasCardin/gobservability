@@ -2,7 +2,7 @@ package internal
 
 import (
 	"bufio"
-	"fmt"
+	"errors"
 	"os"
 	"strconv"
 	"strings"
@@ -20,7 +20,7 @@ func ProcStat(devMode string) (*types.CPUStats, error) {
 	procStatPath := getProcStat(devMode)
 	file, err := os.Open(procStatPath)
 	if err != nil {
-		return nil, fmt.Errorf("error: opening %s %v", procStatPath, err)
+		return nil, errors.New("failed to open proc stat")
 	}
 	defer file.Close()
 
@@ -30,7 +30,7 @@ func ProcStat(devMode string) (*types.CPUStats, error) {
 		if strings.HasPrefix(line, "cpu ") {
 			fields := strings.Fields(line)
 			if len(fields) < 8 {
-				return nil, fmt.Errorf("error: invalid %s format", procStatPath)
+				return nil, errors.New("invalid proc stat format")
 			}
 
 			user, _ := strconv.ParseUint(fields[1], 10, 64)
@@ -60,8 +60,8 @@ func ProcStat(devMode string) (*types.CPUStats, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error: reading %s: %v", procStatPath, err)
+		return nil, errors.New("failed to read proc stat")
 	}
 
-	return nil, fmt.Errorf("error: finding cpu ")
+	return nil, errors.New("CPU line not found in proc stat")
 }

@@ -1,7 +1,8 @@
 package collector
 
 import (
-	"fmt"
+	"errors"
+	"log/slog"
 	"os"
 	"time"
 
@@ -27,7 +28,7 @@ func NewPodCollector(cache *metrics.Cache, calculator *metrics.Calculator, devMo
 // CollectPodMetrics collects metrics for a single pod and calculates percentages
 func (pc *PodCollector) CollectPodMetrics(pod *types.Pod, totalSystemMemoryKB uint64) error {
 	if pod.PID <= 0 {
-		return fmt.Errorf("error: invalid PID: %d", pod.PID)
+		return errors.New("invalid PID")
 	}
 
 	if isDev := os.Getenv(pc.devMode); isDev == "true" {
@@ -37,7 +38,7 @@ func (pc *PodCollector) CollectPodMetrics(pod *types.Pod, totalSystemMemoryKB ui
 	// Collect raw metrics
 	podMetrics, pidDetails, err := internal.CollectPodMetrics(pc.devMode, pod.PID)
 	if err != nil {
-		return fmt.Errorf("error: failed to collect pod metrics: %v", err)
+		return errors.New("failed to collect pod metrics")
 	}
 
 	// Get previous metrics from cache
@@ -83,7 +84,7 @@ func (pc *PodCollector) CollectAllPodMetrics(pods []*types.Pod, totalSystemMemor
 			activePIDs = append(activePIDs, pod.PID)
 
 			if err := pc.CollectPodMetrics(pod, totalSystemMemoryKB); err != nil {
-				fmt.Printf("error: failed to collect metrics for pod %s (PID %d) %s\n", pod.Name, pod.PID, err.Error())
+				slog.Error("failed to collect metrics for pod", "pod", pod.Name, "pid", pod.PID, "error", err)
 				pod.PID = -1 // Mark as failed
 			}
 		}

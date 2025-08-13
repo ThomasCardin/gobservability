@@ -2,7 +2,7 @@ package internal
 
 import (
 	"bufio"
-	"fmt"
+	"errors"
 	"os"
 	"strconv"
 	"strings"
@@ -20,7 +20,7 @@ func ProcMeminfo(devMode string) (*types.MemoryStats, error) {
 	procMeminfoPath := getProcMeminfo(devMode)
 	file, err := os.Open(procMeminfoPath)
 	if err != nil {
-		return nil, fmt.Errorf("error: opening %s %v", procMeminfoPath, err)
+		return nil, errors.New("failed to open proc meminfo")
 	}
 	defer file.Close()
 
@@ -61,7 +61,7 @@ func ProcMeminfo(devMode string) (*types.MemoryStats, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error: reading %s: %v", procMeminfoPath, err)
+		return nil, errors.New("failed to read proc meminfo")
 	}
 
 	return memStats, nil

@@ -1,7 +1,8 @@
 package collector
 
 import (
-	"fmt"
+	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/ThomasCardin/gobservability/cmd/agent/pkg/kubernetes"
@@ -44,12 +45,12 @@ func NewCollector(devMode string, grpcClient GRPCSender) *Collector {
 func (c *Collector) CollectAll(nodeName string) (*types.NodeStatsPayload, error) {
 	nodeMetrics, err := c.nodeCollector.CollectNodeMetrics(nodeName)
 	if err != nil {
-		return nil, fmt.Errorf("error: failed to collect node metrics %s", err.Error())
+		return nil, errors.New("failed to collect node metrics")
 	}
 
 	pods, err := c.k8sClient.GetPodsForNode(nodeName)
 	if err != nil {
-		return nil, fmt.Errorf("error: failed to get pods %s", err.Error())
+		return nil, errors.New("failed to get pods")
 	}
 
 	// Get total system memory for pod percentage calculations
@@ -57,7 +58,7 @@ func (c *Collector) CollectAll(nodeName string) (*types.NodeStatsPayload, error)
 
 	if err := c.podCollector.CollectAllPodMetrics(pods, totalSystemMemoryKB); err != nil {
 		// Log error but continue - some pods may have succeeded
-		fmt.Printf("error: failed to collect pod metrics %s\n", err.Error())
+		slog.Error("failed to collect pod metrics", "error", err)
 	}
 
 	nodeMetrics.Pods = pods
@@ -87,13 +88,13 @@ func (c *Collector) Start(nodeName string, interval time.Duration) {
 func (c *Collector) collectAndSend(nodeName string) {
 	payload, err := c.CollectAll(nodeName)
 	if err != nil {
-		fmt.Printf("error: %s failed to collect metrics %s\n", nodeName, err.Error())
+		slog.Error("failed to collect metrics", "node", nodeName, "error", err)
 		return
 	}
 
 	if err := c.grpcClient.Send(payload); err != nil {
-		fmt.Printf("error: %s failed to send metrics via gRPC %s\n", nodeName, err.Error())
+		slog.Error("failed to send metrics via gRPC", "node", nodeName, "error", err)
 	}
 
-	fmt.Printf("OK: %s sent metrics via gRPC\n", nodeName)
+	slog.Info("sent metrics via gRPC", "component", "metrics", "node", nodeName)
 }
