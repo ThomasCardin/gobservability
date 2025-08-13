@@ -3,19 +3,33 @@ package storage
 import (
 	"time"
 
-	"github.com/ThomasCardin/peek/shared/types"
+	pb "github.com/ThomasCardin/gobservability/proto"
+	"github.com/ThomasCardin/gobservability/shared/types"
 	"github.com/patrickmn/go-cache"
 )
 
 var GlobalStore = NewCacheStore(10*time.Second, 5*time.Second)
 
 type CacheStore struct {
-	cache *cache.Cache
+	cache           *cache.Cache
+	flamegraphTasks *cache.Cache
+}
+
+type FlamegraphTask struct {
+	TaskID    string
+	NodeName  string
+	PodName   string
+	Format    string
+	Completed bool
+	Error     string
+	Data      []byte
+	CreatedAt time.Time
 }
 
 func NewCacheStore(defaultExpiration, cleanupInterval time.Duration) *CacheStore {
 	return &CacheStore{
-		cache: cache.New(defaultExpiration, cleanupInterval),
+		cache:           cache.New(defaultExpiration, cleanupInterval),
+		flamegraphTasks: cache.New(30*time.Minute, 5*time.Minute), // Tasks expire after 30 minutes
 	}
 }
 
@@ -50,4 +64,52 @@ func (s *CacheStore) GetNodeStats(nodeName string) (*types.NodeStatsPayload, boo
 // GetCacheStats returns cache statistics for monitoring
 func (s *CacheStore) GetCacheStats() (int, int) {
 	return s.cache.ItemCount(), len(s.cache.Items())
+}
+
+// StoreFlamegraphResult stores the result of a flamegraph generation task
+func (s *CacheStore) StoreFlamegraphResult(taskID string, resp *pb.FlamegraphResponse, err error, format, nodeName, podName string) {
+	task := &FlamegraphTask{
+		TaskID:    taskID,
+		NodeName:  nodeName,
+		PodName:   podName,
+		Format:    format,
+		Completed: true,
+		CreatedAt: time.Now(),
+	}
+
+	if err != nil {
+		task.Error = err.Error()
+	} else if resp != nil {
+		if resp.Error != "" {
+			task.Error = resp.Error
+		} else {
+			task.Data = resp.FlamegraphData
+		}
+	}
+
+	s.flamegraphTasks.Set(taskID, task, cache.DefaultExpiration)
+}
+
+// GetFlamegraphResult retrieves the result of a flamegraph generation task
+func (s *CacheStore) GetFlamegraphResult(taskID string) *FlamegraphTask {
+	if item, found := s.flamegraphTasks.Get(taskID); found {
+		if task, ok := item.(*FlamegraphTask); ok {
+			return task
+		}
+	}
+	return nil
+}
+
+// CreateFlamegraphTask creates a new flamegraph task in pending state
+func (s *CacheStore) CreateFlamegraphTask(taskID, nodeName, podName, format string) {
+	task := &FlamegraphTask{
+		TaskID:    taskID,
+		NodeName:  nodeName,
+		PodName:   podName,
+		Format:    format,
+		Completed: false,
+		CreatedAt: time.Now(),
+	}
+
+	s.flamegraphTasks.Set(taskID, task, cache.DefaultExpiration)
 }

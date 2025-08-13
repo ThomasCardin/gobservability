@@ -42,6 +42,11 @@ spec:
             cpu: "200m"
         securityContext:
           privileged: true
+          capabilities:
+            add:
+            - SYS_ADMIN
+            - SYS_PTRACE
+            - SYS_RAWIO
         volumeMounts:
         - name: proc
           mountPath: /host/proc

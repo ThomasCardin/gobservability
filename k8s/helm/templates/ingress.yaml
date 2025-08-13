@@ -5,10 +5,11 @@ metadata:
   namespace: gobservability
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: nginx 
   rules:
-  - host: gobservability.local.dev
+  - host: gobservability.ninebasetwo.net
     http:
       paths:
       - path: /
@@ -20,5 +21,5 @@ spec:
               number: 8080
   tls:
   - hosts:
-    - gobservability.local.dev
+    - gobservability.ninebasetwo.net
     secretName: gobservability-tls

@@ -3,8 +3,8 @@ package api
 import (
 	"sort"
 
-	"github.com/ThomasCardin/peek/cmd/server/formatter"
-	"github.com/ThomasCardin/peek/cmd/server/storage"
+	"github.com/ThomasCardin/gobservability/cmd/server/formatter"
+	"github.com/ThomasCardin/gobservability/cmd/server/storage"
 )
 
 func getUINodes() []formatter.UINode {

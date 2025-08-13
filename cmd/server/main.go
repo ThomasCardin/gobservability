@@ -4,8 +4,8 @@ import (
 	"flag"
 	"log"
 
-	"github.com/ThomasCardin/peek/cmd/server/api"
-	grpcServer "github.com/ThomasCardin/peek/cmd/server/grpc"
+	"github.com/ThomasCardin/gobservability/cmd/server/api"
+	grpcServer "github.com/ThomasCardin/gobservability/cmd/server/grpc"
 	"github.com/gin-gonic/gin"
 )
 
@@ -37,6 +37,10 @@ func main() {
 	r.GET("/api/pods/:nodename/:podname/details", api.PodProcessDetailsHandler)               // API pour détails processus JSON
 	r.GET("/api/pods/:nodename/:podname/info", api.PodInfoHandler)                            // Fragment HTMX pour infos pod
 	r.GET("/api/pods/:nodename/:podname/details-fragment", api.ProcessDetailsFragmentHandler) // Fragment HTMX pour process details
+	r.POST("/api/pods/:nodename/:podname/flamegraph", api.GenerateFlamegraphHandler)          // API pour démarrer génération flamegraph
+	r.GET("/api/flamegraph/:taskid/status", api.FlamegraphStatusHandler)                      // API pour vérifier statut flamegraph
+	r.GET("/api/flamegraph/:taskid/download", api.DownloadFlamegraphHandler)                  // API pour télécharger flamegraph
+	r.GET("/flamegraph/:nodename/:podname", api.FlamegraphPageHandler)                        // Page dédiée pour afficher flamegraph
 
 	// Démarrer le serveur gRPC en goroutine
 	go func() {

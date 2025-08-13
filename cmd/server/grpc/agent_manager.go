@@ -6,8 +6,8 @@ import (
 	"log"
 	"time"
 
+	pb "github.com/ThomasCardin/gobservability/proto"
 	cache "github.com/patrickmn/go-cache"
-	pb "github.com/ThomasCardin/peek/proto"
 )
 
 // AgentConnection represents a connected agent with its stream
@@ -29,8 +29,8 @@ func NewAgentManager() *AgentManager {
 	return &AgentManager{
 		// Agents expire after 5 minutes, cleanup every minute
 		agents: cache.New(5*time.Minute, 1*time.Minute),
-		// Requests expire after 30 seconds, cleanup every 10 seconds
-		requests: cache.New(30*time.Second, 10*time.Second),
+		// Requests expire after 5 minutes (to handle long flamegraph operations), cleanup every 30 seconds
+		requests: cache.New(5*time.Minute, 30*time.Second),
 	}
 }
 
@@ -43,17 +43,17 @@ func (am *AgentManager) RegisterAgent(nodeName string, stream pb.NodeService_Age
 			conn.Cancel()
 		}
 	}
-	
+
 	conn := &AgentConnection{
 		NodeName: nodeName,
 		Stream:   stream,
 		Context:  ctx,
 		Cancel:   cancel,
 	}
-	
+
 	// Set with default expiration (5 minutes)
 	am.agents.Set(nodeName, conn, cache.DefaultExpiration)
-	
+
 	// Set up cleanup on expiration
 	am.agents.OnEvicted(func(key string, value interface{}) {
 		if conn, ok := value.(*AgentConnection); ok {
@@ -61,7 +61,7 @@ func (am *AgentManager) RegisterAgent(nodeName string, stream pb.NodeService_Age
 			conn.Cancel()
 		}
 	})
-	
+
 	log.Printf("Registered agent for node %s", nodeName)
 }
 
@@ -100,18 +100,13 @@ func (am *AgentManager) UpdateLastSeen(nodeName string) {
 func (am *AgentManager) RegisterRequest(requestID string) chan *pb.FlamegraphResponse {
 	ch := make(chan *pb.FlamegraphResponse, 1)
 	am.requests.Set(requestID, ch, cache.DefaultExpiration)
-	
-	// Cleanup on expiration (timeout)
-	am.requests.OnEvicted(func(key string, value interface{}) {
-		if ch, ok := value.(chan *pb.FlamegraphResponse); ok {
-			// Send timeout error
-			ch <- &pb.FlamegraphResponse{
-				Error: "Request timed out",
-			}
-			close(ch)
-		}
-	})
-	
+	return ch
+}
+
+// RegisterRequestWithTimeout registers a flamegraph request with a custom timeout
+func (am *AgentManager) RegisterRequestWithTimeout(requestID string, timeout time.Duration) chan *pb.FlamegraphResponse {
+	ch := make(chan *pb.FlamegraphResponse, 1)
+	am.requests.Set(requestID, ch, timeout)
 	return ch
 }
 
@@ -130,10 +125,10 @@ func (am *AgentManager) CompleteRequest(requestID string, response *pb.Flamegrap
 func (am *AgentManager) GetConnectedAgents() []string {
 	items := am.agents.Items()
 	agents := make([]string, 0, len(items))
-	
+
 	for nodeName := range items {
 		agents = append(agents, nodeName)
 	}
-	
+
 	return agents
 }

@@ -886,6 +886,68 @@ h1 {
     transform: translateY(0);
 }
 
+/* Flamegraph Controls */
+.flamegraph-controls {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.flamegraph-controls h3 {
+    color: #58a6ff;
+    margin: 0 0 20px 0;
+    font-size: 1.3em;
+    font-weight: 600;
+    text-align: center;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 16px;
+}
+
+.control-group label {
+    color: #8b949e;
+    font-size: 0.95em;
+    font-weight: 500;
+    min-width: 140px;
+}
+
+.flamegraph-select {
+    background: #0d1117;
+    color: #c9d1d9;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.95em;
+    flex: 1;
+    max-width: 200px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.flamegraph-select:hover {
+    border-color: #58a6ff;
+}
+
+.flamegraph-select:focus {
+    outline: none;
+    border-color: #58a6ff;
+    box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+}
+
+.flamegraph-controls .flamegraph-btn {
+    width: 100%;
+    margin-top: 24px;
+    justify-content: center;
+}
+
 /* Command Line Section */
 .command-line-section {
     background: #161b22;

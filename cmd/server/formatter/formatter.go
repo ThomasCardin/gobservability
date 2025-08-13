@@ -3,7 +3,7 @@ package formatter
 import (
 	"fmt"
 
-	"github.com/ThomasCardin/peek/shared/types"
+	"github.com/ThomasCardin/gobservability/shared/types"
 )
 
 // UINode represents a formatted node for the UI display

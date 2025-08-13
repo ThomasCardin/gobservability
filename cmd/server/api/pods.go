@@ -1,8 +1,8 @@
 package api
 
 import (
-	"github.com/ThomasCardin/peek/cmd/server/formatter"
-	"github.com/ThomasCardin/peek/shared/types"
+	"github.com/ThomasCardin/gobservability/cmd/server/formatter"
+	"github.com/ThomasCardin/gobservability/shared/types"
 )
 
 // formatPodsForUI formats pod data for UI display

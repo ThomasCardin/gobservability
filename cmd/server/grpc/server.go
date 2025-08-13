@@ -7,10 +7,10 @@ import (
 	"net"
 	"time"
 
-	"github.com/ThomasCardin/peek/cmd/server/storage"
-	pb "github.com/ThomasCardin/peek/proto"
-	sharedGrpc "github.com/ThomasCardin/peek/shared/grpc"
-	"github.com/ThomasCardin/peek/shared/types"
+	"github.com/ThomasCardin/gobservability/cmd/server/storage"
+	pb "github.com/ThomasCardin/gobservability/proto"
+	sharedGrpc "github.com/ThomasCardin/gobservability/shared/grpc"
+	"github.com/ThomasCardin/gobservability/shared/types"
 	"google.golang.org/grpc"
 )
 
@@ -20,11 +20,21 @@ type Server struct {
 	agentManager *AgentManager
 }
 
+var serverInstance *Server
+
 // NewServer creates a new gRPC server with agent management
 func NewServer() *Server {
-	return &Server{
-		agentManager: NewAgentManager(),
+	if serverInstance == nil {
+		serverInstance = &Server{
+			agentManager: NewAgentManager(),
+		}
 	}
+	return serverInstance
+}
+
+// GetServerInstance returns the singleton server instance
+func GetServerInstance() *Server {
+	return serverInstance
 }
 
 // SendStats remplace le handler HTTP /api/stats
@@ -49,8 +59,8 @@ func (s *Server) SendStats(ctx context.Context, req *pb.NodeStatsRequest) (*pb.S
 
 // GenerateFlamegraph handles flamegraph generation requests
 func (s *Server) GenerateFlamegraph(ctx context.Context, req *pb.FlamegraphRequest) (*pb.FlamegraphResponse, error) {
-	log.Printf("Received flamegraph request for node: %s, pod: %s, duration: %ds, format: %s",
-		req.NodeName, req.PodName, req.Duration, req.Format)
+	log.Printf("Received flamegraph request for node: %s, pod: %s, duration: %ds",
+		req.NodeName, req.PodName, req.Duration)
 
 	// Get the agent connection for the requested node
 	agent, err := s.agentManager.GetAgent(req.NodeName)
@@ -63,15 +73,16 @@ func (s *Server) GenerateFlamegraph(ctx context.Context, req *pb.FlamegraphReque
 	// Generate a unique request ID
 	requestID := fmt.Sprintf("%s-%s-%d", req.NodeName, req.PodName, time.Now().UnixNano())
 
-	// Register the request and get response channel
-	responseChan := s.agentManager.RegisterRequest(requestID)
+	// Register the request and get response channel with generous timeout
+	// Flamegraph generation can take time, especially for complex processes
+	requestTimeout := 10 * time.Minute
+	responseChan := s.agentManager.RegisterRequestWithTimeout(requestID, requestTimeout)
 
 	// Add request ID to the request
 	reqWithID := &pb.FlamegraphRequest{
 		NodeName:  req.NodeName,
 		PodName:   req.PodName,
 		Duration:  req.Duration,
-		Format:    req.Format,
 		RequestId: requestID,
 	}
 
@@ -88,12 +99,15 @@ func (s *Server) GenerateFlamegraph(ctx context.Context, req *pb.FlamegraphReque
 	}
 
 	// Wait for response or timeout
+	log.Printf("Waiting for flamegraph response from agent for request %s", requestID)
 	select {
 	case response := <-responseChan:
+		log.Printf("Received flamegraph response for request %s", requestID)
 		return response, nil
 	case <-ctx.Done():
+		log.Printf("Flamegraph request %s timed out or cancelled", requestID)
 		return &pb.FlamegraphResponse{
-			Error: "Request cancelled",
+			Error: "Request timed out waiting for agent response",
 		}, nil
 	}
 }

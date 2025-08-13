@@ -1,13 +1,18 @@
 package api
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
+	"time"
 
-	"github.com/ThomasCardin/peek/cmd/server/formatter"
-	"github.com/ThomasCardin/peek/cmd/server/storage"
-	"github.com/ThomasCardin/peek/shared/types"
+	"github.com/ThomasCardin/gobservability/cmd/server/formatter"
+	grpcServer "github.com/ThomasCardin/gobservability/cmd/server/grpc"
+	"github.com/ThomasCardin/gobservability/cmd/server/storage"
+	pb "github.com/ThomasCardin/gobservability/proto"
+	"github.com/ThomasCardin/gobservability/shared/types"
 	"github.com/gin-gonic/gin"
 )
 
@@ -366,10 +371,12 @@ func ProcessDetailsFragmentHandler(c *gin.Context) {
 	})
 }
 
-// GenerateFlamegraphHandler generates a flamegraph for a specific pod
+// GenerateFlamegraphHandler starts flamegraph generation and returns a task ID
 func GenerateFlamegraphHandler(c *gin.Context) {
 	nodeName := c.Param("nodename")
 	podName := c.Param("podname")
+
+	log.Printf("Received flamegraph HTTP request for node: %s, pod: %s", nodeName, podName)
 
 	if nodeName == "" || podName == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Node name and pod name required"})
@@ -377,17 +384,13 @@ func GenerateFlamegraphHandler(c *gin.Context) {
 	}
 
 	// Get optional query parameters
-	duration, err := strconv.Atoi(c.DefaultQuery("duration", "30"))
-	if err != nil || duration <= 0 || duration > 300 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid duration (1-300 seconds)"})
+	duration, err := strconv.Atoi(c.DefaultQuery("duration", "60"))
+	if err != nil || duration < 30 || duration > 600 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid duration (30-600 seconds)"})
 		return
 	}
 
-	format := c.DefaultQuery("format", "svg")
-	if format != "svg" && format != "folded" && format != "txt" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid format (svg, folded, txt)"})
-		return
-	}
+	format := "json"
 
 	// Verify the pod exists
 	nodeStats, found := storage.GlobalStore.GetNodeStats(nodeName)
@@ -414,30 +417,131 @@ func GenerateFlamegraphHandler(c *gin.Context) {
 		return
 	}
 
-	// TODO: For now, return a placeholder response
-	// Later this will use bidirectional gRPC streaming to request from the agent
-	placeholderData := fmt.Sprintf(`Mock flamegraph for:
-Node: %s
-Pod: %s
-PID: %d
-Duration: %d seconds
-Format: %s
-
-This is a placeholder - real implementation will use gRPC streaming to agent.`, 
-		nodeName, podName, targetPod.PID, duration, format)
-
-	// Set appropriate content type based on format
-	switch format {
-	case "svg":
-		c.Header("Content-Type", "image/svg+xml")
-		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s-%s-flamegraph.svg", nodeName, podName))
-	case "txt":
-		c.Header("Content-Type", "text/plain")
-		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s-%s-flamegraph.txt", nodeName, podName))
-	case "folded":
-		c.Header("Content-Type", "text/plain")
-		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s-%s-flamegraph-folded.txt", nodeName, podName))
+	// Get the gRPC server instance
+	grpcServer := grpcServer.GetServerInstance()
+	if grpcServer == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "gRPC server not initialized"})
+		return
 	}
 
-	c.String(http.StatusOK, placeholderData)
+	// Generate a unique task ID
+	taskID := fmt.Sprintf("%s-%s-%d", nodeName, podName, time.Now().UnixNano())
+
+	// Create task in pending state
+	storage.GlobalStore.CreateFlamegraphTask(taskID, nodeName, podName, format)
+
+	// Start flamegraph generation asynchronously
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		defer cancel()
+
+		// Create the flamegraph request
+		req := &pb.FlamegraphRequest{
+			NodeName: nodeName,
+			PodName:  podName,
+			Duration: int32(duration),
+			Format:   format,
+		}
+
+		// Call the gRPC method
+		resp, err := grpcServer.GenerateFlamegraph(ctx, req)
+
+		// Store the result (you'll need to implement a storage mechanism)
+		storage.GlobalStore.StoreFlamegraphResult(taskID, resp, err, format, nodeName, podName)
+	}()
+
+	// Return task ID immediately
+	c.JSON(http.StatusAccepted, gin.H{
+		"task_id": taskID,
+		"status":  "started",
+		"message": "Flamegraph generation started. Use task_id to check status.",
+	})
+}
+
+// FlamegraphStatusHandler checks the status of a flamegraph generation task
+func FlamegraphStatusHandler(c *gin.Context) {
+	taskID := c.Param("taskid")
+
+	if taskID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Task ID required"})
+		return
+	}
+
+	// Check task status (you'll need to implement this)
+	result := storage.GlobalStore.GetFlamegraphResult(taskID)
+	if result == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+		return
+	}
+
+	if !result.Completed {
+		c.JSON(http.StatusOK, gin.H{
+			"status":  "processing",
+			"message": "Flamegraph is still being generated",
+		})
+		return
+	}
+
+	if result.Error != "" {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": "error",
+			"error":  result.Error,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "completed",
+		"ready":  true,
+		"size":   len(result.Data),
+	})
+}
+
+// DownloadFlamegraphHandler downloads the completed flamegraph
+func DownloadFlamegraphHandler(c *gin.Context) {
+	taskID := c.Param("taskid")
+
+	if taskID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Task ID required"})
+		return
+	}
+
+	// Get completed task result
+	result := storage.GlobalStore.GetFlamegraphResult(taskID)
+	if result == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+		return
+	}
+
+	if !result.Completed {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Task not completed yet"})
+		return
+	}
+
+	if result.Error != "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error})
+		return
+	}
+
+	c.Header("Content-Type", "application/json")
+
+	c.Data(http.StatusOK, "", result.Data)
+}
+
+// FlamegraphPageHandler renders the dedicated flamegraph page
+func FlamegraphPageHandler(c *gin.Context) {
+	nodeName := c.Param("nodename")
+	podName := c.Param("podname")
+	taskID := c.Query("task_id")
+
+	if nodeName == "" || podName == "" {
+		c.HTML(http.StatusBadRequest, "error.html", gin.H{"error": "Node and pod name required"})
+		return
+	}
+
+	c.HTML(http.StatusOK, "flamegraph-simple.html", gin.H{
+		"NodeName": nodeName,
+		"PodName":  podName,
+		"TaskID":   taskID,
+	})
 }
