@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ThomasCardin/peek/cmd/agent/shared"
-	"github.com/ThomasCardin/peek/shared/types"
+	"github.com/ThomasCardin/gobservability/cmd/agent/shared"
+	"github.com/ThomasCardin/gobservability/shared/types"
 )
 
 func getProcDiskstats(devMode string) string {

@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ThomasCardin/peek/cmd/agent/shared"
-	"github.com/ThomasCardin/peek/shared/types"
+	"github.com/ThomasCardin/gobservability/cmd/agent/shared"
+	"github.com/ThomasCardin/gobservability/shared/types"
 )
 
 // https://github.com/torvalds/linux/blob/master/Documentation/filesystems/proc.rst#11-process-specific-subdirectories
