@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: gobservability-postgres
+    environment:
+      POSTGRES_DB: gobservability
+      POSTGRES_USER: gobs
+      POSTGRES_PASSWORD: gobs123
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gobs -d gobservability"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  gobservability:
+    build:
+      context: .
+      dockerfile: ./cmd/server/Dockerfile
+    container_name: gobservability-server
+    ports:
+      - "8080:8080"  # HTTP
+      - "9090:9090"  # gRPC
+    environment:
+      POSTGRES_URL: "postgres://gobs:gobs123@postgres:5432/gobservability?sslmode=disable"
+      DISCORD_WEBHOOK_URL: "${DISCORD_WEBHOOK_URL}"
+      GIN_MODE: "release"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Optional: Agent for local testing (normally deployed as DaemonSet in K8s)
+  gobservability-agent:
+    build:
+      context: .
+      dockerfile: ./cmd/agent/Dockerfile
+    container_name: gobservability-agent
+    environment:
+      SERVER_ENDPOINT: "gobservability:9090"
+      NODE_NAME: "docker-node"
+      ENABLE_FLAMEGRAPH: "true"
+    depends_on:
+      - gobservability
+    restart: unless-stopped
+    privileged: true  # Required for perf tools
+    pid: "host"      # Required for system monitoring
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+
+volumes:
+  postgres_data:

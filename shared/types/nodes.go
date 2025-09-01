@@ -17,3 +17,4 @@ type NodeStatsPayload struct {
 	Timestamp time.Time   `json:"timestamp"`
 	Metrics   NodeMetrics `json:"metrics"`
 }
+

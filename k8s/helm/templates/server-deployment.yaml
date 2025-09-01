@@ -27,6 +27,16 @@ spec:
           name: http
         - containerPort: 9090
           name: grpc
+        env:
+        - name: POSTGRES_URL
+          value: "postgres://gobs:gobs123@gobservability-postgres-rw.gobservability.svc.cluster.local:5432/gobservability?sslmode=disable"
+        - name: DISCORD_WEBHOOK_URL
+          valueFrom:
+            secretKeyRef:
+              name: discord-webhook
+              key: webhook_url
+        - name: GIN_MODE
+          value: "release"
         resources:
           requests:
             memory: "64Mi"

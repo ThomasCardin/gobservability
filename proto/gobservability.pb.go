@@ -812,14 +812,16 @@ func (x *DiskStats) GetTotalRate() float64 {
 }
 
 type Pod struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	ContainerId   string                 `protobuf:"bytes,2,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
-	Pid           int64                  `protobuf:"varint,3,opt,name=pid,proto3" json:"pid,omitempty"`
-	PodMetrics    *PodMetrics            `protobuf:"bytes,4,opt,name=pod_metrics,json=podMetrics,proto3" json:"pod_metrics,omitempty"`
-	PidDetails    *PidDetails            `protobuf:"bytes,5,opt,name=pid_details,json=pidDetails,proto3" json:"pid_details,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Name             string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	ContainerId      string                 `protobuf:"bytes,2,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	Pid              int64                  `protobuf:"varint,3,opt,name=pid,proto3" json:"pid,omitempty"`
+	PodMetrics       *PodMetrics            `protobuf:"bytes,4,opt,name=pod_metrics,json=podMetrics,proto3" json:"pod_metrics,omitempty"`
+	PidDetails       *PidDetails            `protobuf:"bytes,5,opt,name=pid_details,json=pidDetails,proto3" json:"pid_details,omitempty"`
+	ResourceLimits   *ResourceInfo          `protobuf:"bytes,6,opt,name=resource_limits,json=resourceLimits,proto3" json:"resource_limits,omitempty"`
+	ResourceRequests *ResourceInfo          `protobuf:"bytes,7,opt,name=resource_requests,json=resourceRequests,proto3" json:"resource_requests,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Pod) Reset() {
@@ -883,6 +885,20 @@ func (x *Pod) GetPodMetrics() *PodMetrics {
 func (x *Pod) GetPidDetails() *PidDetails {
 	if x != nil {
 		return x.PidDetails
+	}
+	return nil
+}
+
+func (x *Pod) GetResourceLimits() *ResourceInfo {
+	if x != nil {
+		return x.ResourceLimits
+	}
+	return nil
+}
+
+func (x *Pod) GetResourceRequests() *ResourceInfo {
+	if x != nil {
+		return x.ResourceRequests
 	}
 	return nil
 }
@@ -1179,6 +1195,58 @@ func (x *PodDiskStats) GetWriteBytes() uint64 {
 	return 0
 }
 
+type ResourceInfo struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Cpu           string                 `protobuf:"bytes,1,opt,name=cpu,proto3" json:"cpu,omitempty"`       // CPU in millicores (e.g., "100m", "2")
+	Memory        string                 `protobuf:"bytes,2,opt,name=memory,proto3" json:"memory,omitempty"` // Memory in bytes (e.g., "128Mi", "1Gi")
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResourceInfo) Reset() {
+	*x = ResourceInfo{}
+	mi := &file_proto_gobservability_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResourceInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResourceInfo) ProtoMessage() {}
+
+func (x *ResourceInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gobservability_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResourceInfo.ProtoReflect.Descriptor instead.
+func (*ResourceInfo) Descriptor() ([]byte, []int) {
+	return file_proto_gobservability_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ResourceInfo) GetCpu() string {
+	if x != nil {
+		return x.Cpu
+	}
+	return ""
+}
+
+func (x *ResourceInfo) GetMemory() string {
+	if x != nil {
+		return x.Memory
+	}
+	return ""
+}
+
 type PidDetails struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// From /proc/{PID}/stat - process basics
@@ -1227,7 +1295,7 @@ type PidDetails struct {
 
 func (x *PidDetails) Reset() {
 	*x = PidDetails{}
-	mi := &file_proto_gobservability_proto_msgTypes[15]
+	mi := &file_proto_gobservability_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1239,7 +1307,7 @@ func (x *PidDetails) String() string {
 func (*PidDetails) ProtoMessage() {}
 
 func (x *PidDetails) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_gobservability_proto_msgTypes[15]
+	mi := &file_proto_gobservability_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1252,7 +1320,7 @@ func (x *PidDetails) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PidDetails.ProtoReflect.Descriptor instead.
 func (*PidDetails) Descriptor() ([]byte, []int) {
-	return file_proto_gobservability_proto_rawDescGZIP(), []int{15}
+	return file_proto_gobservability_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *PidDetails) GetName() string {
@@ -1515,7 +1583,7 @@ type AgentMessage struct {
 
 func (x *AgentMessage) Reset() {
 	*x = AgentMessage{}
-	mi := &file_proto_gobservability_proto_msgTypes[16]
+	mi := &file_proto_gobservability_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1527,7 +1595,7 @@ func (x *AgentMessage) String() string {
 func (*AgentMessage) ProtoMessage() {}
 
 func (x *AgentMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_gobservability_proto_msgTypes[16]
+	mi := &file_proto_gobservability_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1540,7 +1608,7 @@ func (x *AgentMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentMessage.ProtoReflect.Descriptor instead.
 func (*AgentMessage) Descriptor() ([]byte, []int) {
-	return file_proto_gobservability_proto_rawDescGZIP(), []int{16}
+	return file_proto_gobservability_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *AgentMessage) GetMessage() isAgentMessage_Message {
@@ -1612,7 +1680,7 @@ type ServerMessage struct {
 
 func (x *ServerMessage) Reset() {
 	*x = ServerMessage{}
-	mi := &file_proto_gobservability_proto_msgTypes[17]
+	mi := &file_proto_gobservability_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1624,7 +1692,7 @@ func (x *ServerMessage) String() string {
 func (*ServerMessage) ProtoMessage() {}
 
 func (x *ServerMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_gobservability_proto_msgTypes[17]
+	mi := &file_proto_gobservability_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1637,7 +1705,7 @@ func (x *ServerMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServerMessage.ProtoReflect.Descriptor instead.
 func (*ServerMessage) Descriptor() ([]byte, []int) {
-	return file_proto_gobservability_proto_rawDescGZIP(), []int{17}
+	return file_proto_gobservability_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ServerMessage) GetMessage() isServerMessage_Message {
@@ -1691,7 +1759,7 @@ type AgentHello struct {
 
 func (x *AgentHello) Reset() {
 	*x = AgentHello{}
-	mi := &file_proto_gobservability_proto_msgTypes[18]
+	mi := &file_proto_gobservability_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1703,7 +1771,7 @@ func (x *AgentHello) String() string {
 func (*AgentHello) ProtoMessage() {}
 
 func (x *AgentHello) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_gobservability_proto_msgTypes[18]
+	mi := &file_proto_gobservability_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1716,7 +1784,7 @@ func (x *AgentHello) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentHello.ProtoReflect.Descriptor instead.
 func (*AgentHello) Descriptor() ([]byte, []int) {
-	return file_proto_gobservability_proto_rawDescGZIP(), []int{18}
+	return file_proto_gobservability_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *AgentHello) GetNodeName() string {
@@ -1742,7 +1810,7 @@ type ServerAck struct {
 
 func (x *ServerAck) Reset() {
 	*x = ServerAck{}
-	mi := &file_proto_gobservability_proto_msgTypes[19]
+	mi := &file_proto_gobservability_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1754,7 +1822,7 @@ func (x *ServerAck) String() string {
 func (*ServerAck) ProtoMessage() {}
 
 func (x *ServerAck) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_gobservability_proto_msgTypes[19]
+	mi := &file_proto_gobservability_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1767,7 +1835,7 @@ func (x *ServerAck) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServerAck.ProtoReflect.Descriptor instead.
 func (*ServerAck) Descriptor() ([]byte, []int) {
-	return file_proto_gobservability_proto_rawDescGZIP(), []int{19}
+	return file_proto_gobservability_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ServerAck) GetMessage() string {
@@ -1857,7 +1925,7 @@ const file_proto_gobservability_proto_rawDesc = "" +
 	"write_rate\x18\n" +
 	" \x01(\x01R\twriteRate\x12\x1d\n" +
 	"\n" +
-	"total_rate\x18\v \x01(\x01R\ttotalRate\"\xc8\x01\n" +
+	"total_rate\x18\v \x01(\x01R\ttotalRate\"\xda\x02\n" +
 	"\x03Pod\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\fcontainer_id\x18\x02 \x01(\tR\vcontainerId\x12\x10\n" +
@@ -1865,7 +1933,9 @@ const file_proto_gobservability_proto_rawDesc = "" +
 	"\vpod_metrics\x18\x04 \x01(\v2\x1a.gobservability.PodMetricsR\n" +
 	"podMetrics\x12;\n" +
 	"\vpid_details\x18\x05 \x01(\v2\x1a.gobservability.PidDetailsR\n" +
-	"pidDetails\"\xe0\x01\n" +
+	"pidDetails\x12E\n" +
+	"\x0fresource_limits\x18\x06 \x01(\v2\x1c.gobservability.ResourceInfoR\x0eresourceLimits\x12I\n" +
+	"\x11resource_requests\x18\a \x01(\v2\x1c.gobservability.ResourceInfoR\x10resourceRequests\"\xe0\x01\n" +
 	"\n" +
 	"PodMetrics\x12-\n" +
 	"\x03cpu\x18\x01 \x01(\v2\x1b.gobservability.PodCPUStatsR\x03cpu\x126\n" +
@@ -1889,7 +1959,10 @@ const file_proto_gobservability_proto_rawDesc = "" +
 	"\n" +
 	"read_bytes\x18\x01 \x01(\x04R\treadBytes\x12\x1f\n" +
 	"\vwrite_bytes\x18\x02 \x01(\x04R\n" +
-	"writeBytes\"\xf2\b\n" +
+	"writeBytes\"8\n" +
+	"\fResourceInfo\x12\x10\n" +
+	"\x03cpu\x18\x01 \x01(\tR\x03cpu\x12\x16\n" +
+	"\x06memory\x18\x02 \x01(\tR\x06memory\"\xf2\b\n" +
 	"\n" +
 	"PidDetails\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
@@ -1961,7 +2034,7 @@ func file_proto_gobservability_proto_rawDescGZIP() []byte {
 	return file_proto_gobservability_proto_rawDescData
 }
 
-var file_proto_gobservability_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_proto_gobservability_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_proto_gobservability_proto_goTypes = []any{
 	(*NodeStatsRequest)(nil),      // 0: gobservability.NodeStatsRequest
 	(*StatsResponse)(nil),         // 1: gobservability.StatsResponse
@@ -1978,15 +2051,16 @@ var file_proto_gobservability_proto_goTypes = []any{
 	(*PodMemoryStats)(nil),        // 12: gobservability.PodMemoryStats
 	(*PodNetworkStats)(nil),       // 13: gobservability.PodNetworkStats
 	(*PodDiskStats)(nil),          // 14: gobservability.PodDiskStats
-	(*PidDetails)(nil),            // 15: gobservability.PidDetails
-	(*AgentMessage)(nil),          // 16: gobservability.AgentMessage
-	(*ServerMessage)(nil),         // 17: gobservability.ServerMessage
-	(*AgentHello)(nil),            // 18: gobservability.AgentHello
-	(*ServerAck)(nil),             // 19: gobservability.ServerAck
-	(*timestamppb.Timestamp)(nil), // 20: google.protobuf.Timestamp
+	(*ResourceInfo)(nil),          // 15: gobservability.ResourceInfo
+	(*PidDetails)(nil),            // 16: gobservability.PidDetails
+	(*AgentMessage)(nil),          // 17: gobservability.AgentMessage
+	(*ServerMessage)(nil),         // 18: gobservability.ServerMessage
+	(*AgentHello)(nil),            // 19: gobservability.AgentHello
+	(*ServerAck)(nil),             // 20: gobservability.ServerAck
+	(*timestamppb.Timestamp)(nil), // 21: google.protobuf.Timestamp
 }
 var file_proto_gobservability_proto_depIdxs = []int32{
-	20, // 0: gobservability.NodeStatsRequest.timestamp:type_name -> google.protobuf.Timestamp
+	21, // 0: gobservability.NodeStatsRequest.timestamp:type_name -> google.protobuf.Timestamp
 	4,  // 1: gobservability.NodeStatsRequest.metrics:type_name -> gobservability.NodeMetrics
 	5,  // 2: gobservability.NodeMetrics.cpu:type_name -> gobservability.CPUStats
 	6,  // 3: gobservability.NodeMetrics.memory:type_name -> gobservability.MemoryStats
@@ -1994,27 +2068,29 @@ var file_proto_gobservability_proto_depIdxs = []int32{
 	8,  // 5: gobservability.NodeMetrics.disk:type_name -> gobservability.DiskStats
 	9,  // 6: gobservability.NodeMetrics.pods:type_name -> gobservability.Pod
 	10, // 7: gobservability.Pod.pod_metrics:type_name -> gobservability.PodMetrics
-	15, // 8: gobservability.Pod.pid_details:type_name -> gobservability.PidDetails
-	11, // 9: gobservability.PodMetrics.cpu:type_name -> gobservability.PodCPUStats
-	12, // 10: gobservability.PodMetrics.memory:type_name -> gobservability.PodMemoryStats
-	13, // 11: gobservability.PodMetrics.network:type_name -> gobservability.PodNetworkStats
-	14, // 12: gobservability.PodMetrics.disk:type_name -> gobservability.PodDiskStats
-	18, // 13: gobservability.AgentMessage.hello:type_name -> gobservability.AgentHello
-	0,  // 14: gobservability.AgentMessage.stats:type_name -> gobservability.NodeStatsRequest
-	3,  // 15: gobservability.AgentMessage.flamegraph_response:type_name -> gobservability.FlamegraphResponse
-	19, // 16: gobservability.ServerMessage.ack:type_name -> gobservability.ServerAck
-	2,  // 17: gobservability.ServerMessage.flamegraph_request:type_name -> gobservability.FlamegraphRequest
-	0,  // 18: gobservability.NodeService.SendStats:input_type -> gobservability.NodeStatsRequest
-	2,  // 19: gobservability.NodeService.GenerateFlamegraph:input_type -> gobservability.FlamegraphRequest
-	16, // 20: gobservability.NodeService.AgentStream:input_type -> gobservability.AgentMessage
-	1,  // 21: gobservability.NodeService.SendStats:output_type -> gobservability.StatsResponse
-	3,  // 22: gobservability.NodeService.GenerateFlamegraph:output_type -> gobservability.FlamegraphResponse
-	17, // 23: gobservability.NodeService.AgentStream:output_type -> gobservability.ServerMessage
-	21, // [21:24] is the sub-list for method output_type
-	18, // [18:21] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	16, // 8: gobservability.Pod.pid_details:type_name -> gobservability.PidDetails
+	15, // 9: gobservability.Pod.resource_limits:type_name -> gobservability.ResourceInfo
+	15, // 10: gobservability.Pod.resource_requests:type_name -> gobservability.ResourceInfo
+	11, // 11: gobservability.PodMetrics.cpu:type_name -> gobservability.PodCPUStats
+	12, // 12: gobservability.PodMetrics.memory:type_name -> gobservability.PodMemoryStats
+	13, // 13: gobservability.PodMetrics.network:type_name -> gobservability.PodNetworkStats
+	14, // 14: gobservability.PodMetrics.disk:type_name -> gobservability.PodDiskStats
+	19, // 15: gobservability.AgentMessage.hello:type_name -> gobservability.AgentHello
+	0,  // 16: gobservability.AgentMessage.stats:type_name -> gobservability.NodeStatsRequest
+	3,  // 17: gobservability.AgentMessage.flamegraph_response:type_name -> gobservability.FlamegraphResponse
+	20, // 18: gobservability.ServerMessage.ack:type_name -> gobservability.ServerAck
+	2,  // 19: gobservability.ServerMessage.flamegraph_request:type_name -> gobservability.FlamegraphRequest
+	0,  // 20: gobservability.NodeService.SendStats:input_type -> gobservability.NodeStatsRequest
+	2,  // 21: gobservability.NodeService.GenerateFlamegraph:input_type -> gobservability.FlamegraphRequest
+	17, // 22: gobservability.NodeService.AgentStream:input_type -> gobservability.AgentMessage
+	1,  // 23: gobservability.NodeService.SendStats:output_type -> gobservability.StatsResponse
+	3,  // 24: gobservability.NodeService.GenerateFlamegraph:output_type -> gobservability.FlamegraphResponse
+	18, // 25: gobservability.NodeService.AgentStream:output_type -> gobservability.ServerMessage
+	23, // [23:26] is the sub-list for method output_type
+	20, // [20:23] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_proto_gobservability_proto_init() }
@@ -2022,12 +2098,12 @@ func file_proto_gobservability_proto_init() {
 	if File_proto_gobservability_proto != nil {
 		return
 	}
-	file_proto_gobservability_proto_msgTypes[16].OneofWrappers = []any{
+	file_proto_gobservability_proto_msgTypes[17].OneofWrappers = []any{
 		(*AgentMessage_Hello)(nil),
 		(*AgentMessage_Stats)(nil),
 		(*AgentMessage_FlamegraphResponse)(nil),
 	}
-	file_proto_gobservability_proto_msgTypes[17].OneofWrappers = []any{
+	file_proto_gobservability_proto_msgTypes[18].OneofWrappers = []any{
 		(*ServerMessage_Ack)(nil),
 		(*ServerMessage_FlamegraphRequest)(nil),
 	}
@@ -2037,7 +2113,7 @@ func file_proto_gobservability_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_gobservability_proto_rawDesc), len(file_proto_gobservability_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   20,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

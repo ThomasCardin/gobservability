@@ -1,11 +1,13 @@
 package types
 
 type Pod struct {
-	Name        string     `json:"name"`
-	ContainerID string     `json:"container_id"`
-	PID         int        `json:"pid"`
-	PodMetrics  PodMetrics `json:"pod_metrics"`
-	PidDetails  PidDetails `json:"pid_details"`
+	Name            string          `json:"name"`
+	ContainerID     string          `json:"container_id"`
+	PID             int             `json:"pid"`
+	PodMetrics      PodMetrics      `json:"pod_metrics"`
+	PidDetails      PidDetails      `json:"pid_details"`
+	ResourceLimits  ResourceInfo    `json:"resource_limits"`
+	ResourceRequests ResourceInfo   `json:"resource_requests"`
 }
 
 // PodMetrics contains only the metrics needed for UI calculations
@@ -40,4 +42,10 @@ type PodNetworkStats struct {
 type PodDiskStats struct {
 	ReadBytes  uint64 `json:"read_bytes"`  // Bytes read from disk
 	WriteBytes uint64 `json:"write_bytes"` // Bytes written to disk
+}
+
+// ResourceInfo contains resource limits and requests for a pod
+type ResourceInfo struct {
+	CPU    string `json:"cpu"`    // CPU in millicores (e.g., "100m", "2")
+	Memory string `json:"memory"` // Memory in bytes (e.g., "128Mi", "1Gi")
 }

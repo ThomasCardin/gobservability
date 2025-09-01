@@ -92,11 +92,13 @@ func ConvertToGRPCPods(pods []*types.Pod) []*pb.Pod {
 	grpcPods := make([]*pb.Pod, len(pods))
 	for i, pod := range pods {
 		grpcPods[i] = &pb.Pod{
-			Name:        pod.Name,
-			ContainerId: pod.ContainerID,
-			Pid:         int64(pod.PID),
-			PodMetrics:  ConvertToGRPCPodMetrics(pod.PodMetrics),
-			PidDetails:  ConvertToGRPCPidDetails(pod.PidDetails),
+			Name:             pod.Name,
+			ContainerId:      pod.ContainerID,
+			Pid:              int64(pod.PID),
+			PodMetrics:       ConvertToGRPCPodMetrics(pod.PodMetrics),
+			PidDetails:       ConvertToGRPCPidDetails(pod.PidDetails),
+			ResourceLimits:   ConvertToGRPCResourceInfo(pod.ResourceLimits),
+			ResourceRequests: ConvertToGRPCResourceInfo(pod.ResourceRequests),
 		}
 	}
 	return grpcPods
@@ -138,6 +140,13 @@ func ConvertToGRPCPodDiskStats(disk types.PodDiskStats) *pb.PodDiskStats {
 	return &pb.PodDiskStats{
 		ReadBytes:  disk.ReadBytes,
 		WriteBytes: disk.WriteBytes,
+	}
+}
+
+func ConvertToGRPCResourceInfo(resource types.ResourceInfo) *pb.ResourceInfo {
+	return &pb.ResourceInfo{
+		Cpu:    resource.CPU,
+		Memory: resource.Memory,
 	}
 }
 
@@ -277,11 +286,13 @@ func ConvertPods(grpcPods []*pb.Pod) []*types.Pod {
 	pods := make([]*types.Pod, len(grpcPods))
 	for i, grpcPod := range grpcPods {
 		pods[i] = &types.Pod{
-			Name:        grpcPod.Name,
-			ContainerID: grpcPod.ContainerId,
-			PID:         int(grpcPod.Pid),
-			PodMetrics:  ConvertPodMetrics(grpcPod.PodMetrics),
-			PidDetails:  ConvertPidDetails(grpcPod.PidDetails),
+			Name:             grpcPod.Name,
+			ContainerID:      grpcPod.ContainerId,
+			PID:              int(grpcPod.Pid),
+			PodMetrics:       ConvertPodMetrics(grpcPod.PodMetrics),
+			PidDetails:       ConvertPidDetails(grpcPod.PidDetails),
+			ResourceLimits:   ConvertResourceInfo(grpcPod.ResourceLimits),
+			ResourceRequests: ConvertResourceInfo(grpcPod.ResourceRequests),
 		}
 	}
 	return pods
@@ -338,6 +349,16 @@ func ConvertPodDiskStats(grpc *pb.PodDiskStats) types.PodDiskStats {
 	return types.PodDiskStats{
 		ReadBytes:  grpc.ReadBytes,
 		WriteBytes: grpc.WriteBytes,
+	}
+}
+
+func ConvertResourceInfo(grpc *pb.ResourceInfo) types.ResourceInfo {
+	if grpc == nil {
+		return types.ResourceInfo{}
+	}
+	return types.ResourceInfo{
+		CPU:    grpc.Cpu,
+		Memory: grpc.Memory,
 	}
 }
 

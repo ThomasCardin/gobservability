@@ -115,6 +115,8 @@ message Pod {
   int64 pid = 3;
   PodMetrics pod_metrics = 4;
   PidDetails pid_details = 5;
+  ResourceInfo resource_limits = 6;
+  ResourceInfo resource_requests = 7;
 }
 
 message PodMetrics {
@@ -144,6 +146,11 @@ message PodNetworkStats {
 message PodDiskStats {
   uint64 read_bytes = 1;  // Bytes read from disk
   uint64 write_bytes = 2; // Bytes written to disk
+}
+
+message ResourceInfo {
+  string cpu = 1;    // CPU in millicores (e.g., "100m", "2")
+  string memory = 2; // Memory in bytes (e.g., "128Mi", "1Gi")
 }
 
 message PidDetails {
