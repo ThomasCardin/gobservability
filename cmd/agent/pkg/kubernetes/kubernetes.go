@@ -43,13 +43,19 @@ func GetPodsPID(devMode, nodeName string) ([]*types.Pod, error) {
 
 	var result []*types.Pod
 	for _, pod := range pods.Items {
+		// Get resource limits and requests
+		resourceLimits := getResourceLimits(pod.Spec.Containers)
+		resourceRequests := getResourceRequests(pod.Spec.Containers)
+
 		// Get containerid
 		containerIDs, err := getContainerID(pod.Name, pod.Status.ContainerStatuses)
 		if err != nil {
 			result = append(result, &types.Pod{
-				Name:        pod.Name,
-				ContainerID: "Not found",
-				PID:         -1,
+				Name:             pod.Name,
+				ContainerID:      "Not found",
+				PID:              -1,
+				ResourceLimits:   resourceLimits,
+				ResourceRequests: resourceRequests,
 			})
 			continue
 		}
@@ -59,30 +65,36 @@ func GetPodsPID(devMode, nodeName string) ([]*types.Pod, error) {
 			pid, err := getPID(devMode, containerID)
 			if err != nil {
 				result = append(result, &types.Pod{
-					Name:        pod.Name,
-					ContainerID: containerID,
-					PID:         -1,
-					PodMetrics:  types.PodMetrics{}, // Empty metrics for failed pods
-					PidDetails:  types.PidDetails{}, // Empty details for failed pods
+					Name:             pod.Name,
+					ContainerID:      containerID,
+					PID:              -1,
+					PodMetrics:       types.PodMetrics{}, // Empty metrics for failed pods
+					PidDetails:       types.PidDetails{}, // Empty details for failed pods
+					ResourceLimits:   resourceLimits,
+					ResourceRequests: resourceRequests,
 				})
 			} else {
 				// Collect detailed metrics for this PID
 				podMetrics, pidDetails, metricsErr := internal.CollectPodMetrics(devMode, pid)
 				if metricsErr != nil {
 					result = append(result, &types.Pod{
-						Name:        pod.Name,
-						ContainerID: containerID,
-						PID:         pid,
-						PodMetrics:  types.PodMetrics{},
-						PidDetails:  types.PidDetails{},
+						Name:             pod.Name,
+						ContainerID:      containerID,
+						PID:              pid,
+						PodMetrics:       types.PodMetrics{},
+						PidDetails:       types.PidDetails{},
+						ResourceLimits:   resourceLimits,
+						ResourceRequests: resourceRequests,
 					})
 				} else {
 					result = append(result, &types.Pod{
-						Name:        pod.Name,
-						ContainerID: containerID,
-						PID:         pid,
-						PodMetrics:  *podMetrics,
-						PidDetails:  *pidDetails,
+						Name:             pod.Name,
+						ContainerID:      containerID,
+						PID:              pid,
+						PodMetrics:       *podMetrics,
+						PidDetails:       *pidDetails,
+						ResourceLimits:   resourceLimits,
+						ResourceRequests: resourceRequests,
 					})
 				}
 			}
@@ -158,4 +170,100 @@ func getPID(devMode, containerID string) (int, error) {
 	}
 
 	return -1, errors.New("PID not found for container")
+}
+
+// getResourceLimits extracts resource limits from pod containers
+func getResourceLimits(containers []v1.Container) types.ResourceInfo {
+	var totalCPU, totalMemory string
+
+	for _, container := range containers {
+		if container.Resources.Limits != nil {
+			// Get CPU limits
+			if cpu, ok := container.Resources.Limits[v1.ResourceCPU]; ok {
+				cpuStr := cpu.String()
+				if cpuStr != "" && cpuStr != "0" {
+					if totalCPU == "" {
+						totalCPU = cpuStr
+					} else {
+						// If multiple containers, concatenate values
+						totalCPU = totalCPU + "+" + cpuStr
+					}
+				}
+			}
+
+			// Get Memory limits
+			if memory, ok := container.Resources.Limits[v1.ResourceMemory]; ok {
+				memoryStr := memory.String()
+				if memoryStr != "" && memoryStr != "0" {
+					if totalMemory == "" {
+						totalMemory = memoryStr
+					} else {
+						// If multiple containers, concatenate values
+						totalMemory = totalMemory + "+" + memoryStr
+					}
+				}
+			}
+		}
+	}
+
+	// Set infinity symbol if not specified or empty
+	if totalCPU == "" {
+		totalCPU = "∞"
+	}
+	if totalMemory == "" {
+		totalMemory = "∞"
+	}
+
+	return types.ResourceInfo{
+		CPU:    totalCPU,
+		Memory: totalMemory,
+	}
+}
+
+// getResourceRequests extracts resource requests from pod containers
+func getResourceRequests(containers []v1.Container) types.ResourceInfo {
+	var totalCPU, totalMemory string
+
+	for _, container := range containers {
+		if container.Resources.Requests != nil {
+			// Get CPU requests
+			if cpu, ok := container.Resources.Requests[v1.ResourceCPU]; ok {
+				cpuStr := cpu.String()
+				if cpuStr != "" && cpuStr != "0" {
+					if totalCPU == "" {
+						totalCPU = cpuStr
+					} else {
+						// If multiple containers, concatenate values
+						totalCPU = totalCPU + "+" + cpuStr
+					}
+				}
+			}
+
+			// Get Memory requests
+			if memory, ok := container.Resources.Requests[v1.ResourceMemory]; ok {
+				memoryStr := memory.String()
+				if memoryStr != "" && memoryStr != "0" {
+					if totalMemory == "" {
+						totalMemory = memoryStr
+					} else {
+						// If multiple containers, concatenate values
+						totalMemory = totalMemory + "+" + memoryStr
+					}
+				}
+			}
+		}
+	}
+
+	// Set infinity symbol if not specified or empty
+	if totalCPU == "" {
+		totalCPU = "∞"
+	}
+	if totalMemory == "" {
+		totalMemory = "∞"
+	}
+
+	return types.ResourceInfo{
+		CPU:    totalCPU,
+		Memory: totalMemory,
+	}
 }

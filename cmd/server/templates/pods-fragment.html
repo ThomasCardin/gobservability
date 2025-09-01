@@ -26,6 +26,14 @@
                 <span class="detail-label">Process:</span>
                 <span class="detail-value">{{if .ProcessName}}{{.ProcessName}}{{else}}-{{end}}</span>
             </div>
+            <div class="detail-row">
+                <span class="detail-label">CPU / Mem requested:</span>
+                <span class="detail-value">{{.ResourceRequestCPU}} / {{.ResourceRequestMemory}}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">CPU / Mem limit:</span>
+                <span class="detail-value">{{.ResourceLimitCPU}} / {{.ResourceLimitMemory}}</span>
+            </div>
         </div>
 
         {{if ne .Status "ERROR"}}

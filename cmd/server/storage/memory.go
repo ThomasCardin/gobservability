@@ -3,6 +3,7 @@ package storage
 import (
 	"time"
 
+	"github.com/ThomasCardin/gobservability/cmd/server/alerts"
 	pb "github.com/ThomasCardin/gobservability/proto"
 	"github.com/ThomasCardin/gobservability/shared/types"
 	"github.com/patrickmn/go-cache"
@@ -13,6 +14,7 @@ var GlobalStore = NewCacheStore(10*time.Second, 5*time.Second)
 type CacheStore struct {
 	cache           *cache.Cache
 	flamegraphTasks *cache.Cache
+	alertsManager   *alerts.AlertsManager
 }
 
 type FlamegraphTask struct {
@@ -30,12 +32,23 @@ func NewCacheStore(defaultExpiration, cleanupInterval time.Duration) *CacheStore
 	return &CacheStore{
 		cache:           cache.New(defaultExpiration, cleanupInterval),
 		flamegraphTasks: cache.New(30*time.Minute, 5*time.Minute), // Tasks expire after 30 minutes
+		alertsManager:   nil, // Set later via SetAlertsManager
 	}
+}
+
+// SetAlertsManager sets the alerts manager for metric evaluation
+func (s *CacheStore) SetAlertsManager(manager *alerts.AlertsManager) {
+	s.alertsManager = manager
 }
 
 // StoreNodeStats stores incoming node statistics from agents
 func (s *CacheStore) StoreNodeStats(stats types.NodeStatsPayload) {
 	s.cache.Set(stats.NodeName, stats, cache.DefaultExpiration)
+	
+	// Evaluate alerts if alerts manager is available
+	if s.alertsManager != nil {
+		s.alertsManager.EvaluateMetrics(stats)
+	}
 }
 
 // GetAllNodes returns all stored node statistics

@@ -4,8 +4,10 @@ import (
 	"flag"
 	"log"
 
+	"github.com/ThomasCardin/gobservability/cmd/server/alerts"
 	"github.com/ThomasCardin/gobservability/cmd/server/api"
 	grpcServer "github.com/ThomasCardin/gobservability/cmd/server/grpc"
+	"github.com/ThomasCardin/gobservability/cmd/server/storage"
 	"github.com/gin-gonic/gin"
 )
 
@@ -41,6 +43,37 @@ func main() {
 	r.GET("/api/flamegraph/:taskid/status", api.FlamegraphStatusHandler)                      // API pour vérifier statut flamegraph
 	r.GET("/api/flamegraph/:taskid/download", api.DownloadFlamegraphHandler)                  // API pour télécharger flamegraph
 	r.GET("/flamegraph/:nodename/:podname", api.FlamegraphPageHandler)                        // Page dédiée pour afficher flamegraph
+
+	// Initialiser le système d'alertes
+	alertsManager, err := alerts.NewAlertsManager()
+	if err != nil {
+		log.Printf("Warning: Failed to initialize alerts system: %v", err)
+		log.Printf("Alerts will be disabled. Make sure POSTGRES_URL and DISCORD_WEBHOOK_URL are set.")
+	} else {
+		log.Printf("Alerts system initialized successfully")
+		
+		// Configurer le storage pour l'API et le GlobalStore pour l'évaluation
+		api.SetAlertsStorage(alertsManager.GetStorage())
+		api.SetDiscordNotifier(alertsManager.GetDiscord())
+		storage.GlobalStore.SetAlertsManager(alertsManager)
+		
+		// Routes pour les alertes
+		r.GET("/alerts/:nodename", api.AlertsPageHandler)                    // Page principale des alertes
+		r.GET("/api/alerts/:nodename", api.GetAlertsHandler)                 // API JSON pour les alertes
+		r.GET("/api/alerts/:nodename/fragment", api.GetAlertsFragmentHandler) // Fragment HTMX
+		r.POST("/api/alerts/:nodename", api.CreateAlertRuleHandler)          // Créer une règle
+		r.PUT("/api/alerts/:nodename/:ruleid", api.UpdateAlertRuleHandler)   // Modifier une règle
+		r.DELETE("/api/alerts/:nodename/:ruleid", api.DeleteAlertRuleHandler) // Supprimer une règle
+		r.PUT("/api/alerts/dismiss/:alertid", api.DismissAlertHandler)       // Dismiss une alerte active
+		r.GET("/api/alerts/:nodename/history", api.GetAlertHistoryHandler)   // Historique des alertes
+		
+		// Cleanup à l'arrêt du serveur
+		defer func() {
+			if err := alertsManager.Close(); err != nil {
+				log.Printf("Error closing alerts manager: %v", err)
+			}
+		}()
+	}
 
 	// Démarrer le serveur gRPC en goroutine
 	go func() {

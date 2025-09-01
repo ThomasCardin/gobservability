@@ -9,6 +9,14 @@ func generateFakePods(nodeName string) []*types.Pod {
 			Name:        "nginx-deployment-abc123",
 			ContainerID: "docker://1234567890abcdef",
 			PID:         1,
+			ResourceLimits: types.ResourceInfo{
+				CPU:    "500m",
+				Memory: "256Mi",
+			},
+			ResourceRequests: types.ResourceInfo{
+				CPU:    "100m",
+				Memory: "128Mi",
+			},
 			PodMetrics: types.PodMetrics{
 				CPU: types.PodCPUStats{
 					UTime:      12340,
@@ -72,6 +80,14 @@ func generateFakePods(nodeName string) []*types.Pod {
 			Name:        "redis-server-xyz789",
 			ContainerID: "containerd://fedcba0987654321",
 			PID:         1,
+			ResourceLimits: types.ResourceInfo{
+				CPU:    "1",
+				Memory: "512Mi",
+			},
+			ResourceRequests: types.ResourceInfo{
+				CPU:    "250m",
+				Memory: "256Mi",
+			},
 			PodMetrics: types.PodMetrics{
 				CPU: types.PodCPUStats{
 					UTime:      23450,
@@ -129,6 +145,14 @@ func generateFakePods(nodeName string) []*types.Pod {
 			Name:        "api-service-def456",
 			ContainerID: "docker://abcdef1234567890",
 			PID:         1,
+			ResourceLimits: types.ResourceInfo{
+				CPU:    "2",
+				Memory: "2Gi",
+			},
+			ResourceRequests: types.ResourceInfo{
+				CPU:    "500m",
+				Memory: "1Gi",
+			},
 			PodMetrics: types.PodMetrics{
 				CPU: types.PodCPUStats{
 					UTime:      45600,
@@ -190,6 +214,14 @@ func generateFakePods(nodeName string) []*types.Pod {
 			Name:        "postgres-db-ghi789",
 			ContainerID: "containerd://567890abcdef1234",
 			PID:         1,
+			ResourceLimits: types.ResourceInfo{
+				CPU:    "∞",  // No limit
+				Memory: "4Gi",
+			},
+			ResourceRequests: types.ResourceInfo{
+				CPU:    "1",
+				Memory: "2Gi",
+			},
 			PodMetrics: types.PodMetrics{
 				CPU: types.PodCPUStats{
 					UTime:      67800,
@@ -250,6 +282,14 @@ func generateFakePods(nodeName string) []*types.Pod {
 			Name:        "failing-pod-error",
 			ContainerID: "Not found",
 			PID:         -1,
+			ResourceLimits: types.ResourceInfo{
+				CPU:    "∞",
+				Memory: "∞",
+			},
+			ResourceRequests: types.ResourceInfo{
+				CPU:    "∞",
+				Memory: "∞",
+			},
 			PodMetrics:  types.PodMetrics{}, // Empty metrics for failed pod
 			PidDetails:  types.PidDetails{}, // Empty details for failed pod
 		},
@@ -257,6 +297,14 @@ func generateFakePods(nodeName string) []*types.Pod {
 			Name:        "partial-pod-test",
 			ContainerID: "docker://errorcontainer123",
 			PID:         -1,
+			ResourceLimits: types.ResourceInfo{
+				CPU:    "100m",
+				Memory: "64Mi",
+			},
+			ResourceRequests: types.ResourceInfo{
+				CPU:    "50m",
+				Memory: "32Mi",
+			},
 			PodMetrics:  types.PodMetrics{}, // Empty metrics for failed pod
 			PidDetails:  types.PidDetails{}, // Empty details for failed pod
 		},

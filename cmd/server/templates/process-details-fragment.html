@@ -49,6 +49,29 @@
         </div>
     </div>
 
+    <!-- Kubernetes Resources -->
+    {{if .ResourceLimits}}
+    <div class="mini-subsection">
+        <h5 class="mini-title">Kubernetes Resources</h5>
+        <div class="detail-item">
+            <span class="label">CPU Request:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="cpu-request">{{.ResourceRequests.CPU}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">CPU Limit:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="cpu-limit">{{.ResourceLimits.CPU}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Memory Request:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="memory-request">{{.ResourceRequests.Memory}}</span>
+        </div>
+        <div class="detail-item">
+            <span class="label">Memory Limit:</span>
+            <span class="value" data-process="{{.PodName}}" data-metric="memory-limit">{{.ResourceLimits.Memory}}</span>
+        </div>
+    </div>
+    {{end}}
+
     <!-- /proc/<pid>/status -->
     <div class="mini-subsection">
         <h5 class="mini-title">/proc/{{.PID}}/status</h5>

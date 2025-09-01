@@ -1,6 +1,10 @@
 {{if .Pod}}
 <div class="section-separator">
     <h2 class="section-title">📦 POD ({{.Pod.Name}}) PID: {{if eq .Pod.PID -1}}Not Found{{else}}{{.Pod.PID}}{{end}} | {{if .Pod.ProcessName}}{{.Pod.ProcessName}}{{else}}-{{end}} | {{if .Pod.State}}{{.Pod.State}}{{else}}-{{end}}</h2>
+    <div style="font-size: 0.9em; margin-top: 8px; color: #a0a0a0;">
+        <div>📊 Requests: CPU {{.Pod.ResourceRequestCPU}} | Memory {{.Pod.ResourceRequestMemory}}</div>
+        <div>🚨 Limits: CPU {{.Pod.ResourceLimitCPU}} | Memory {{.Pod.ResourceLimitMemory}}</div>
+    </div>
 </div>
 {{if ne .Pod.Status "ERROR"}}
 <div class="metrics-grid">

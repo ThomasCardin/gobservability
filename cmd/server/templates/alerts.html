@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerts - {{.NodeName}} | gobservability</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        /* Keep the original dark theme */
+        body {
+            background: #0d1117;
+            color: #e6edf3;
+        }
+
+        .alerts-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header Section */
+        .alerts-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .alerts-title {
+            color: #f0f6fc;
+            font-size: 2rem;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .back-btn {
+            background: #161b22;
+            border: 1px solid #30363d;
+            color: #7d8590;
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .back-btn:hover {
+            background: #21262d;
+            color: #e6edf3;
+            border-color: #58a6ff;
+        }
+
+        /* Active Alerts Section */
+        .active-alerts-container {
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            color: #f0f6fc;
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .alert-badge {
+            background: #da3633;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .no-alerts {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 24px;
+            text-align: center;
+            color: #7d8590;
+        }
+
+        .active-alert-card {
+            background: #161b22;
+            border: 1px solid #da3633;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 12px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .alert-content {
+            flex: 1;
+        }
+        
+        .alert-actions {
+            margin-left: 16px;
+        }
+        
+        .btn-dismiss {
+            background: #6e7681;
+            color: #e6edf3;
+            border: 1px solid #30363d;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-dismiss:hover {
+            background: #da3633;
+            border-color: #da3633;
+        }
+
+        .active-alert-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #da3633;
+        }
+
+        .alert-target {
+            color: #f0f6fc;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+
+        .alert-details {
+            display: flex;
+            gap: 16px;
+            color: #7d8590;
+            font-size: 0.9rem;
+        }
+
+        .alert-metric {
+            color: #e6edf3;
+        }
+
+        /* Rules Section */
+        .rules-container {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 24px;
+        }
+
+        .rules-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .create-btn {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .create-btn:hover {
+            background: #2ea043;
+        }
+
+        /* Rules List - Modern Card Style */
+        .rules-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .rule-card {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 16px;
+            display: grid;
+            grid-template-columns: auto 1fr auto auto;
+            gap: 20px;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .rule-card:hover {
+            border-color: #58a6ff;
+            transform: translateX(2px);
+        }
+        
+        .rule-card.updating {
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .rule-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #3fb950;
+        }
+
+        .rule-status.disabled {
+            background: #6e7681;
+        }
+
+        .rule-info {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            flex: 1;
+        }
+
+        .rule-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .rule-label {
+            color: #7d8590;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .rule-value {
+            color: #e6edf3;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .rule-condition {
+            background: #21262d;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: 'SF Mono', monospace;
+            font-size: 0.9rem;
+            color: #58a6ff;
+        }
+
+        .rule-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-edit, .btn-toggle, .btn-delete {
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: 1px solid #30363d;
+            background: #21262d;
+            color: #e6edf3;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-edit {
+            background: #1f6feb;
+            border-color: #1f6feb;
+        }
+        
+        .btn-edit:hover {
+            background: #4493f8;
+        }
+
+        .btn-toggle:hover {
+            background: #30363d;
+            border-color: #58a6ff;
+        }
+
+        .btn-delete {
+            background: transparent;
+            color: #da3633;
+            border-color: #da3633;
+        }
+
+        .btn-delete:hover {
+            background: #da3633;
+            color: white;
+        }
+
+        /* Empty State */
+        .empty-rules {
+            text-align: center;
+            padding: 48px;
+            color: #7d8590;
+        }
+
+        .empty-rules h3 {
+            color: #e6edf3;
+            margin-bottom: 8px;
+        }
+
+        /* Modal - Simplified */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 32px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            margin-bottom: 24px;
+        }
+
+        .modal-title {
+            color: #f0f6fc;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            color: #e6edf3;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 0.95rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+        
+        .form-help {
+            display: block;
+            margin-top: 4px;
+            font-size: 12px;
+            color: #7d8590;
+            font-style: italic;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 32px;
+            padding-top: 20px;
+            border-top: 1px solid #30363d;
+        }
+
+        .btn-cancel {
+            padding: 8px 20px;
+            background: transparent;
+            border: 1px solid #30363d;
+            color: #e6edf3;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-cancel:hover {
+            background: #21262d;
+        }
+
+        .btn-submit {
+            padding: 8px 20px;
+            background: #238636;
+            border: none;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s ease;
+        }
+
+        .btn-submit:hover {
+            background: #2ea043;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 6px;
+            color: white;
+            font-size: 0.9rem;
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification.success {
+            background: #238636;
+        }
+
+        .notification.error {
+            background: #da3633;
+        }
+    </style>
+</head>
+<body>
+    <div class="alerts-container">
+        <!-- Header -->
+        <div class="alerts-header">
+            <h1 class="alerts-title">Alerts Configuration - {{.NodeName}}</h1>
+            <a href="/" class="back-btn">← Back to Dashboard</a>
+        </div>
+
+        <!-- Active Alerts Section -->
+        <div class="active-alerts-container">
+            <h2 class="section-title">
+                Active Alerts
+                <span class="alert-badge" id="alertCount" style="display: none;">0</span>
+            </h2>
+            <div id="activeAlerts" hx-get="/api/alerts/{{.NodeName}}" 
+                 hx-trigger="load, every 3s, refresh" 
+                 hx-swap="none"
+                 hx-on::after-request="updateActiveAlerts(event)">
+                <div class="no-alerts">Loading alerts...</div>
+            </div>
+        </div>
+
+        <!-- Rules Section -->
+        <div class="rules-container">
+            <div class="rules-header">
+                <h2 class="section-title">Alert Rules</h2>
+                <button class="create-btn" onclick="showModal()">+ Create Rule</button>
+            </div>
+            
+            <div id="rulesContainer" hx-get="/api/alerts/{{.NodeName}}/fragment" 
+                 hx-trigger="load, every 5s, refresh" 
+                 hx-swap="innerHTML"
+                 hx-indicator="#loading">
+                <div class="loading-placeholder">Loading rules...</div>
+            </div>
+            
+            <div id="loading" class="htmx-indicator" style="display:none; text-align:center; padding:10px; color:#7d8590;">
+                🔄 Updating...
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Rule Modal -->
+    <div id="createModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Create Alert Rule</h2>
+            </div>
+            
+            <form id="createRuleForm" onsubmit="submitRule(event); return false;">
+                <div class="form-group">
+                    <label class="form-label">Target</label>
+                    <select name="target" class="form-control" required>
+                        <option value="node">Node ({{.NodeName}})</option>
+                        {{range .Pods}}
+                        <option value="pod:{{.}}">Pod: {{.}}</option>
+                        {{end}}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Metric</label>
+                    <select name="metric" class="form-control" required>
+                        <option value="cpu">CPU Usage (%)</option>
+                        <option value="memory">Memory Usage (%)</option>
+                        <option value="network">Network Traffic (MB/s)</option>
+                        <option value="disk">Disk I/O (MB/s)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Condition</label>
+                    <div class="form-row">
+                        <select name="operator" class="form-control" required>
+                            <option value=">">Greater than</option>
+                            <option value=">=">Greater or equal</option>
+                            <option value="<">Less than</option>
+                            <option value="<=">Less or equal</option>
+                        </select>
+                        <input type="number" name="threshold" class="form-control" 
+                               step="0.1" required placeholder="80.0">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Duration</label>
+                    <select name="duration_seconds" class="form-control">
+                        <option value="30">30 seconds</option>
+                        <option value="60" selected>1 minute</option>
+                        <option value="120">2 minutes</option>
+                        <option value="300">5 minutes</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Discord Frequency</label>
+                    <select name="discord_frequency_minutes" class="form-control">
+                        <option value="1">Every minute</option>
+                        <option value="5" selected>Every 5 minutes</option>
+                        <option value="15">Every 15 minutes</option>
+                        <option value="30">Every 30 minutes</option>
+                        <option value="60">Every hour</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Discord Mentions</label>
+                    <input type="text" name="discord_mentions" class="form-control" 
+                           placeholder="<@&123456789> @here @everyone" 
+                           title="Use role IDs like <@&123456789>, @here, @everyone">
+                    <small class="form-help">
+                        Use role IDs: <strong>&lt;@&amp;123456789&gt;</strong> (role), <strong>&lt;@123456789&gt;</strong> (user), <strong>@here</strong>, <strong>@everyone</strong><br>
+                        💡 Get role ID: Right-click role → Copy ID (need Developer Mode enabled)
+                    </small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" onclick="hideModal()">Cancel</button>
+                    <button type="submit" class="btn-submit">Create Rule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Minimal JavaScript - only what's necessary
+        function showModal() {
+            document.getElementById('createModal').classList.add('show');
+        }
+
+        function hideModal() {
+            document.getElementById('createModal').classList.remove('show');
+            const form = document.getElementById('createRuleForm');
+            form.reset();
+            
+            // Reset du mode édition
+            form.removeAttribute('data-edit-id');
+            document.querySelector('.modal-title').textContent = 'Create Alert Rule';
+            document.querySelector('.btn-submit').textContent = 'Create Rule';
+        }
+
+        function submitRule(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const editId = event.target.getAttribute('data-edit-id');
+            const isEdit = !!editId;
+            
+            const rule = {
+                target: formData.get('target'),
+                metric: formData.get('metric'),
+                operator: formData.get('operator'),
+                threshold: parseFloat(formData.get('threshold')),
+                duration_seconds: parseInt(formData.get('duration_seconds')),
+                discord_frequency_minutes: parseInt(formData.get('discord_frequency_minutes')),
+                discord_mentions: formData.get('discord_mentions') || '',
+                enabled: true
+            };
+            
+            const url = isEdit ? `/api/alerts/{{.NodeName}}/${editId}` : '/api/alerts/{{.NodeName}}';
+            const method = isEdit ? 'PUT' : 'POST';
+            
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(rule)
+            })
+            .then(response => {
+                if (response.ok) {
+                    hideModal();
+                    // Refresh immédiat des deux sections
+                    htmx.trigger('#rulesContainer', 'refresh');
+                    htmx.trigger('#activeAlerts', 'refresh');
+                    showNotification(isEdit ? 'Rule updated successfully' : 'Rule created successfully', 'success');
+                } else {
+                    return response.json().then(data => {
+                        throw new Error(data.error || `Failed to ${isEdit ? 'update' : 'create'} rule`);
+                    });
+                }
+            })
+            .catch(err => {
+                console.error(`Error ${isEdit ? 'updating' : 'creating'} rule:`, err);
+                showNotification(err.message || `Failed to ${isEdit ? 'update' : 'create'} rule`, 'error');
+            });
+        }
+
+        function toggleRule(ruleId, currentState) {
+            // Feedback visuel immédiat
+            const ruleCard = document.querySelector(`[onclick*="${ruleId}"]`).closest('.rule-card');
+            if (ruleCard) ruleCard.classList.add('updating');
+            
+            // First get the current rule data
+            fetch(`/api/alerts/{{.NodeName}}`)
+                .then(r => r.json())
+                .then(data => {
+                    const rule = data.rules.find(r => r.id === ruleId);
+                    if (rule) {
+                        // Update only the enabled field
+                        rule.enabled = !currentState;
+                        
+                        // Send the complete rule back
+                        return fetch(`/api/alerts/{{.NodeName}}/${ruleId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(rule)
+                        });
+                    }
+                })
+                .then(response => {
+                    if (response && response.ok) {
+                        // Force immediate refresh
+                        htmx.trigger('#rulesContainer', 'refresh');
+                        htmx.trigger('#activeAlerts', 'refresh');
+                        showNotification(currentState ? 'Rule disabled' : 'Rule enabled', 'success');
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to toggle rule:', err);
+                    showNotification('Failed to update rule', 'error');
+                })
+                .finally(() => {
+                    if (ruleCard) ruleCard.classList.remove('updating');
+                });
+        }
+
+        function editRule(ruleId) {
+            // Récupérer les données de la règle
+            fetch(`/api/alerts/{{.NodeName}}`)
+                .then(r => r.json())
+                .then(data => {
+                    const rule = data.rules.find(r => r.id === ruleId);
+                    if (rule) {
+                        // Pré-remplir le formulaire avec les valeurs existantes
+                        document.querySelector('select[name="target"]').value = rule.target;
+                        document.querySelector('select[name="metric"]').value = rule.metric;
+                        document.querySelector('select[name="operator"]').value = rule.operator;
+                        document.querySelector('input[name="threshold"]').value = rule.threshold;
+                        document.querySelector('select[name="duration_seconds"]').value = rule.duration_seconds;
+                        document.querySelector('select[name="discord_frequency_minutes"]').value = rule.discord_frequency_minutes;
+                        document.querySelector('input[name="discord_mentions"]').value = rule.discord_mentions || '';
+                        
+                        // Changer le titre et le bouton
+                        document.querySelector('.modal-title').textContent = 'Edit Alert Rule';
+                        document.querySelector('.btn-submit').textContent = 'Update Rule';
+                        
+                        // Modifier le formulaire pour update au lieu de create
+                        document.getElementById('createRuleForm').setAttribute('data-edit-id', ruleId);
+                        
+                        showModal();
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to load rule:', err);
+                    showNotification('Failed to load rule for editing', 'error');
+                });
+        }
+
+        function dismissAlert(alertId) {
+            if (confirm('Dismiss this alert? This will stop all notifications for this alert.')) {
+                fetch(`/api/alerts/dismiss/${alertId}`, {
+                    method: 'PUT'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Refresh immédiat
+                        htmx.trigger('#activeAlerts', 'refresh');
+                        showNotification('Alert dismissed', 'success');
+                    } else {
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Failed to dismiss alert');
+                        });
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to dismiss alert:', err);
+                    showNotification(err.message || 'Failed to dismiss alert', 'error');
+                });
+            }
+        }
+
+        function deleteRule(ruleId) {
+            if (confirm('Delete this rule?')) {
+                fetch(`/api/alerts/{{.NodeName}}/${ruleId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Force immediate refresh
+                        htmx.trigger('#rulesContainer', 'refresh');
+                        htmx.trigger('#activeAlerts', 'refresh');
+                        showNotification('Rule deleted', 'success');
+                    } else {
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Failed to delete rule');
+                        });
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to delete rule:', err);
+                    showNotification(err.message || 'Failed to delete rule', 'error');
+                });
+            }
+        }
+
+        function updateActiveAlerts(event) {
+            if (event.detail.xhr.status === 200) {
+                const data = JSON.parse(event.detail.xhr.responseText);
+                const container = document.getElementById('activeAlerts');
+                const badge = document.getElementById('alertCount');
+                
+                if (data.active_alerts && data.active_alerts.length > 0) {
+                    badge.textContent = data.active_alerts.length;
+                    badge.style.display = 'inline-block';
+                    
+                    container.innerHTML = data.active_alerts.map(alert => `
+                        <div class="active-alert-card">
+                            <div class="alert-content">
+                                <div class="alert-target">${alert.target}</div>
+                                <div class="alert-details">
+                                    <span class="alert-metric">${alert.metric}: ${alert.current_value.toFixed(1)}</span>
+                                    <span>Threshold: ${alert.threshold_value}</span>
+                                    <span>Since: ${new Date(alert.started_at).toLocaleTimeString()}</span>
+                                </div>
+                            </div>
+                            <div class="alert-actions">
+                                <button class="btn-dismiss" onclick="dismissAlert('${alert.id}')" title="Manually dismiss this alert">
+                                    Dismiss
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    badge.style.display = 'none';
+                    container.innerHTML = '<div class="no-alerts">No active alerts</div>';
+                }
+            }
+        }
+
+        function showNotification(message, type) {
+            const notif = document.createElement('div');
+            notif.className = `notification ${type}`;
+            notif.textContent = message;
+            document.body.appendChild(notif);
+            
+            setTimeout(() => {
+                notif.remove();
+            }, 3000);
+        }
+
+        // Close modal on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                hideModal();
+            }
+        });
+
+        // Close modal on background click
+        document.getElementById('createModal').addEventListener('click', (e) => {
+            if (e.target.id === 'createModal') {
+                hideModal();
+            }
+        });
+    </script>
+</body>
+</html>

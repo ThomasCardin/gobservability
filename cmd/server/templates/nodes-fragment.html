@@ -5,7 +5,7 @@
         <span class="node-timestamp">🕐 {{.Timestamp}}</span>
         <h3 class="node-name">{{.Name}}</h3>
         <div class="node-actions">
-            <button class="action-btn alerts-btn" onclick="toggleAlerts('{{.Name}}')">🚨 ALERTS</button>
+            <a href="/alerts/{{.Name}}" class="action-btn alerts-btn">🚨 ALERTS</a>
             <a href="/pods/{{.Name}}" class="action-btn pods-btn">🚀 PODS</a>
         </div>
     </div>
@@ -105,13 +105,8 @@
 
 <script>
 
-function toggleAlerts(nodeName) {
-    const alertsSection = document.getElementById('alerts-' + nodeName);
-    alertsSection.style.display = alertsSection.style.display === 'none' ? 'block' : 'none';
-}
-
-// Store previous values for change detection
-let previousValues = new Map();
+// Store previous values for change detection (avoid redeclaration)
+window.previousValues = window.previousValues || new Map();
 
 // Initialize or update value tracking
 function trackValueChanges() {
@@ -144,13 +139,13 @@ function trackValueChanges() {
         }
         
         // Check if value changed
-        if (previousValues.has(key) && previousValues.get(key) !== currentValue) {
+        if (window.previousValues.has(key) && window.previousValues.get(key) !== currentValue) {
             // Value changed - animate it
             animateValueChange(element);
         }
         
         // Store current value for next comparison
-        previousValues.set(key, currentValue);
+        window.previousValues.set(key, currentValue);
     });
 }
 

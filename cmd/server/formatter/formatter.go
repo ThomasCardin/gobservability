@@ -68,6 +68,12 @@ type UIPod struct {
 	ProcessName string `json:"process_name"` // Name of the process
 	State       string `json:"state"`        // Process state
 	Threads     int    `json:"threads"`      // Number of threads
+	
+	// Resource limits and requests
+	ResourceLimitCPU     string `json:"resource_limit_cpu"`     // CPU limit
+	ResourceLimitMemory  string `json:"resource_limit_memory"`  // Memory limit
+	ResourceRequestCPU   string `json:"resource_request_cpu"`   // CPU request
+	ResourceRequestMemory string `json:"resource_request_memory"` // Memory request
 }
 
 // FormatNodeForUI formats raw node stats for UI display
@@ -112,14 +118,18 @@ func FormatPodForUI(pod *types.Pod) UIPod {
 	if pod.PID == -1 {
 		// Failed pod
 		return UIPod{
-			Name:        pod.Name,
-			ContainerID: pod.ContainerID,
-			PID:         pod.PID,
-			Status:      "ERROR",
-			CPU:         "0%",
-			Memory:      "0%",
-			Network:     "0M",
-			Disk:        "0M",
+			Name:                  pod.Name,
+			ContainerID:           pod.ContainerID,
+			PID:                   pod.PID,
+			Status:                "ERROR",
+			CPU:                   "0%",
+			Memory:                "0%",
+			Network:               "0M",
+			Disk:                  "0M",
+			ResourceLimitCPU:      pod.ResourceLimits.CPU,
+			ResourceLimitMemory:   pod.ResourceLimits.Memory,
+			ResourceRequestCPU:    pod.ResourceRequests.CPU,
+			ResourceRequestMemory: pod.ResourceRequests.Memory,
 		}
 	}
 
@@ -157,9 +167,14 @@ func FormatPodForUI(pod *types.Pod) UIPod {
 		DiskRead:  float64(pod.PodMetrics.Disk.ReadBytes) / 1024 / 1024,
 		DiskWrite: float64(pod.PodMetrics.Disk.WriteBytes) / 1024 / 1024,
 
-		ProcessName: pod.PidDetails.Name,
-		State:       pod.PidDetails.State,
-		Threads:     pod.PidDetails.Threads,
+		ProcessName:           pod.PidDetails.Name,
+		State:                 pod.PidDetails.State,
+		Threads:               pod.PidDetails.Threads,
+		
+		ResourceLimitCPU:      pod.ResourceLimits.CPU,
+		ResourceLimitMemory:   pod.ResourceLimits.Memory,
+		ResourceRequestCPU:    pod.ResourceRequests.CPU,
+		ResourceRequestMemory: pod.ResourceRequests.Memory,
 	}
 }
 
