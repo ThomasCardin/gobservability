@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flamegraph - {{.PodName}} | gobservability</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-flame-graph@4.1.3/dist/d3-flamegraph.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/d3-flame-graph@4.1.3/dist/d3-flamegraph.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        
+        .flamegraph-page {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        .flamegraph-header {
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .flamegraph-header h1 {
+            margin: 0;
+            font-size: 20px;
+            color: #333;
+        }
+        
+        .flamegraph-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn:hover {
+            background: #545b62;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        #search-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 200px;
+        }
+        
+        .flamegraph-container {
+            flex: 1;
+            padding: 20px;
+            background: white;
+            overflow: auto;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="flamegraph-page">
+        <div class="flamegraph-header">
+            <h1>🔥 Flamegraph - {{.PodName}}</h1>
+            <div class="flamegraph-controls">
+                <button id="reset-zoom" class="btn">Reset Zoom</button>
+                <button id="search-toggle" class="btn">Toggle Search</button>
+                <input id="search-input" type="text" placeholder="Search functions..." style="display: none;">
+                <a href="/process/{{.NodeName}}/{{.PodName}}" class="btn btn-primary">← Back to Process</a>
+            </div>
+        </div>
+        
+        <div id="flamegraph-container" class="flamegraph-container">
+            <div class="loading">Loading flamegraph data...</div>
+        </div>
+        
+        <div id="debug-info" style="margin: 20px; padding: 10px; background: #f0f0f0; font-family: monospace; font-size: 12px; border-radius: 4px;"></div>
+    </div>
+    
+    <script>
+        function addDebug(message) {
+            const debug = document.getElementById('debug-info');
+            debug.innerHTML += new Date().toLocaleTimeString() + ': ' + message + '<br>';
+        }
+        
+        addDebug('Page loaded');
+        addDebug('D3 available: ' + (typeof d3 !== 'undefined'));
+        addDebug('Flamegraph available: ' + (typeof flamegraph !== 'undefined'));
+        
+        // Load flamegraph data
+        const taskId = new URLSearchParams(window.location.search).get('task_id');
+        addDebug('Task ID: ' + taskId);
+        
+        if (!taskId) {
+            document.getElementById('flamegraph-container').innerHTML = 
+                '<div class="error">Error: No task_id provided in URL</div>';
+        } else {
+            addDebug('Fetching flamegraph data...');
+            // Fetch and render flamegraph
+            fetch(`/api/flamegraph/${taskId}/download`)
+            .then(response => {
+                addDebug('Response status: ' + response.status);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch flamegraph data');
+                }
+                return response.json();
+            })
+            .then(data => {
+                addDebug('Flamegraph data loaded, size: ' + JSON.stringify(data).length + ' chars');
+                console.log('Flamegraph data loaded:', data);
+                renderFlamegraph(data);
+            })
+            .catch(error => {
+                addDebug('Error: ' + error.message);
+                console.error('Error loading flamegraph:', error);
+                document.getElementById('flamegraph-container').innerHTML = 
+                    `<div class="error">Error loading flamegraph: ${error.message}</div>`;
+            });
+        }
+        
+        function renderFlamegraph(data) {
+            addDebug('Starting renderFlamegraph...');
+            addDebug('Data: ' + (data ? 'loaded' : 'null'));
+            
+            if (!data) {
+                addDebug('No data provided!');
+                return;
+            }
+            
+            const container = document.getElementById('flamegraph-container');
+            const width = container.offsetWidth - 40;
+            addDebug('Container width: ' + width);
+            
+            try {
+                // Ultra simple configuration
+                const chart = flamegraph()
+                    .width(width);
+                
+                addDebug('Chart created');
+                
+                // Store globally
+                window.chart = chart;
+                
+                // Clear and create chart div
+                container.innerHTML = '<div id="chart"></div>';
+                
+                addDebug('Rendering chart...');
+                
+                // Render
+                d3.select("#chart")
+                    .datum(data)
+                    .call(chart);
+                
+                addDebug('Chart rendered!');
+                
+                // Setup simple controls
+                setupControls(chart);
+                
+            } catch (error) {
+                addDebug('ERROR: ' + error.message);
+                console.error('Flamegraph error:', error);
+                container.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        function setupControls(chart) {
+            addDebug('Setting up controls...');
+            
+            // Reset zoom button
+            document.getElementById('reset-zoom').onclick = function() {
+                addDebug('Reset zoom clicked');
+                try {
+                    chart.resetZoom();
+                    addDebug('Reset zoom successful');
+                } catch (error) {
+                    addDebug('Reset zoom error: ' + error.message);
+                    console.error('Reset zoom error:', error);
+                }
+            };
+            
+            // Search toggle button
+            document.getElementById('search-toggle').onclick = function() {
+                const searchInput = document.getElementById('search-input');
+                if (searchInput.style.display === 'none') {
+                    searchInput.style.display = 'inline-block';
+                    searchInput.focus();
+                    addDebug('Search input shown');
+                } else {
+                    searchInput.style.display = 'none';
+                    searchInput.value = '';
+                    try {
+                        // Clear search highlighting
+                        chart.clear();
+                        addDebug('Search cleared');
+                    } catch (error) {
+                        addDebug('Search clear error: ' + error.message);
+                    }
+                }
+            };
+            
+            // Search input
+            document.getElementById('search-input').addEventListener('input', function(e) {
+                const searchTerm = e.target.value.trim();
+                addDebug('Searching for: "' + searchTerm + '"');
+                try {
+                    if (searchTerm) {
+                        chart.search(searchTerm);
+                        addDebug('Search executed successfully');
+                    } else {
+                        chart.clear();
+                        addDebug('Search cleared (empty input)');
+                    }
+                } catch (error) {
+                    addDebug('Search error: ' + error.message);
+                    console.error('Search error:', error);
+                }
+            });
+            
+            addDebug('Controls setup complete');
+        }
+    </script>
+</body>
+</html>

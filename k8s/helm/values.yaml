@@ -1,0 +1,92 @@
+# Gobservability Helm Chart Values
+
+namespace: gobservability
+
+# Image pull secrets (if using private registry)
+imagePullSecrets:
+  - name: ghcr-secret
+
+# Server configuration
+server:
+  image:
+    repository: ghcr.io/thomascardin/gobservability-server
+    tag: latest
+    pullPolicy: Always
+
+  # Server mode: "release" or "debug"
+  mode: release
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 128Mi
+
+  service:
+    type: ClusterIP
+    annotations: {}
+
+# Agent configuration
+agent:
+  image:
+    repository: ghcr.io/thomascardin/gobservability-agent
+    tag: latest
+    pullPolicy: Always
+
+  # Metric collection interval
+  interval: 5s
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 64Mi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# PostgreSQL configuration (CloudNativePG)
+postgresql:
+  storage:
+    size: 5Gi
+    storageClass: "default"  # Change to your storage class
+
+# Secrets configuration
+# IMPORTANT: You must create these secrets BEFORE installing the chart
+secrets:
+  # Create with: kubectl create secret generic discord-webhook --from-literal=webhook_url="YOUR_URL" -n gobservability
+  discordWebhook:
+    secretName: discord-webhook
+    key: webhook_url
+
+  # Create with: kubectl create secret generic postgres-user-secret --from-literal=username=gobs --from-literal=password=YOUR_PASSWORD -n gobservability
+  postgres:
+    secretName: postgres-user-secret
+    usernameKey: username
+    passwordKey: password
+
+ingress:
+  enabled: false
+  className: nginx
+  host: gobservability.mydomain.com  # Change to your domain
+
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+  tls:
+    enabled: true
+    secretName: gobservability-tls
+
+# RBAC configuration
+rbac:
+  create: true
+  serviceAccount:
+    create: true
+    name: gobservability-agent
+    annotations: {}

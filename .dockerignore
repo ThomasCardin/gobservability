@@ -1,0 +1,21 @@
+**/.git
+**/node_modules
+**/.DS_Store
+**/Thumbs.db
+
+# Build artifacts
+gobservability-server
+gobservability-agent
+
+# Development files
+.env
+*.log
+*.tmp
+
+# Documentation
+README.md
+docs/
+
+# Docker files
+docker-compose.yml
+.dockerignore

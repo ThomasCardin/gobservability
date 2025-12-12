@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.PodName}} - Process Details | gobservability</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/d3-flame-graph@4.1.3/dist/d3-flamegraph.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-flame-graph@4.1.3/dist/d3-flamegraph.min.js"></script>
+    <style>
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        
+        /* Flamegraph specific styles */
+        .flamegraph-section {
+            margin-top: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .flamegraph-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            background: #f8f9fa;
+            border-radius: 8px 8px 0 0;
+        }
+        
+        .flamegraph-header h3 {
+            margin: 0;
+            color: #333;
+        }
+        
+        .flamegraph-controls-inline {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        
+        .flamegraph-container {
+            padding: 20px;
+            min-height: 400px;
+        }
+        
+        #search-input {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <a href="/pods/{{.NodeName}}" class="back-btn">← Back to {{.NodeName}} Pods</a>
+        </div>
+        
+        <!-- Node Section (Auto-updating with title) -->
+        <div id="nodeMetrics" hx-get="/pods/{{.NodeName}}/metrics" hx-trigger="every 2s" hx-swap="innerHTML">
+            {{if .CPU}}
+            <div class="metrics-grid">
+                <!-- CPU Card -->
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-title">🔥 CPU</span>
+                        <span class="metric-value main-value" data-node="{{.NodeName}}" data-metric="cpu-total">{{printf "%.1f%%" .CPUTotal}}</span>
+                    </div>
+                    <div class="metric-details">
+                        <div class="detail-row">
+                            <div class="cpu-label">
+                                <span>User</span>
+                                <span class="cpu-sub-inline">niced ({{printf "%.1f%%" .CPUNiceRaw}})</span>
+                            </div>
+                            <span class="metric-value" data-node="{{.NodeName}}" data-metric="cpu-user">{{printf "%.1f%%" .CPUUser}}</span>
+                        </div>
+                        <div class="detail-row">
+                            <div class="cpu-label">
+                                <span>System</span>
+                                <span class="cpu-sub-inline">irq({{printf "%.1f%%" .CPUIRQRaw}}) sirq({{printf "%.1f%%" .CPUSIRQRaw}})</span>
+                            </div>
+                            <span class="metric-value" data-node="{{.NodeName}}" data-metric="cpu-system">{{printf "%.1f%%" .CPUSystem}}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Memory Card -->
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-title">🧠 MEMORY</span>
+                        <span class="metric-value main-value" data-node="{{.NodeName}}" data-metric="memory-total">{{.Memory}}</span>
+                    </div>
+                    <div class="metric-details">
+                        <div class="detail-row">
+                            <span>Used</span>
+                            <span class="metric-value" data-node="{{.NodeName}}" data-metric="memory-used">{{printf "%.1fG" .MemoryUsed}}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>Free</span>
+                            <span class="metric-value" data-node="{{.NodeName}}" data-metric="memory-free">{{printf "%.1fG" .MemoryFree}}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Network Card -->
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-title">🌐 NETWORK</span>
+                        <span class="metric-value main-value" data-node="{{.NodeName}}" data-metric="network-total">{{printf "%.1fM" .NetworkTotal}}</span>
+                    </div>
+                    <div class="metric-details">
+                        <div class="detail-row">
+                            <span>RX</span>
+                            <span class="metric-value" data-node="{{.NodeName}}" data-metric="network-rx">{{printf "%.1fM" .NetworkRX}}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>TX</span>
+                            <span class="metric-value" data-node="{{.NodeName}}" data-metric="network-tx">{{printf "%.1fM" .NetworkTX}}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Disk Card -->
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-title">💾 DISK</span>
+                        <span class="metric-value main-value" data-node="{{.NodeName}}" data-metric="disk-total">{{printf "%.1fM" .DiskTotal}}</span>
+                    </div>
+                    <div class="metric-details">
+                        <div class="detail-row">
+                            <span>Read</span>
+                            <span class="metric-value" data-node="{{.NodeName}}" data-metric="disk-read">{{printf "%.1fM" .DiskRead}}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>Write</span>
+                            <span class="metric-value" data-node="{{.NodeName}}" data-metric="disk-write">{{printf "%.1fM" .DiskWrite}}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{end}}
+        </div>
+
+        <!-- Pod Information Section (Auto-updating with title) -->
+        <div id="podInfo" hx-get="/api/pods/{{.NodeName}}/{{.PodName}}/info" hx-trigger="every 2s" hx-swap="innerHTML">
+            <!-- Content will be loaded via HTMX -->
+        </div>
+
+        <!-- Process Details Section (Auto-updating with title) -->
+        <div id="processDetails" hx-get="/api/pods/{{.NodeName}}/{{.PodName}}/details-fragment" hx-trigger="every 2s" hx-swap="innerHTML">
+            <!-- Content will be loaded via HTMX -->
+        </div>
+
+        <!-- Actions Section -->
+        <div class="actions-section">
+            <div class="flamegraph-controls">
+                <h3>🔥 Flamegraph Generation</h3>
+                <div class="control-group">
+                    <label for="duration">Duration (seconds):</label>
+                    <select id="duration" class="flamegraph-select">
+                        <option value="30">30s</option>
+                        <option value="60" selected>1 min</option>
+                        <option value="120">2 min</option>
+                        <option value="300">5 min</option>
+                        <option value="600">10 min</option>
+                    </select>
+                </div>
+                <button class="flamegraph-btn" onclick="generateFlamegraph()">
+                    Generate Flamegraph
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Store previous values for change detection
+        let previousValues = new Map();
+        
+
+        // Normalize value for comparison (remove extra spaces, standardize format)
+        function normalizeValue(value) {
+            if (!value) return '';
+            return value.trim()
+                       .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
+                       .replace(/\s*([%KMGTB]+)\s*/g, '$1')  // Remove spaces around units
+                       .replace(/(\d+)\.0+([%KMGTB])/g, '$1$2');  // Remove trailing zeros: "23.0%" -> "23%"
+        }
+
+        // Initialize or update value tracking
+        function trackValueChanges() {
+            const elements = document.querySelectorAll('[data-node][data-metric], [data-pod][data-metric], [data-process][data-metric]');
+            
+            elements.forEach(element => {
+                const nodeId = element.dataset.node || element.dataset.pod || element.dataset.process;
+                const metric = element.dataset.metric;
+                const key = `${nodeId}-${metric}`;
+                
+                let currentValue;
+                
+                // Extract current value from different element types
+                if (element.classList.contains('section-value')) {
+                    // Extract from parentheses: "(23.4%)" -> "23.4%"
+                    const match = element.textContent.match(/\(([^)]+)\)/);
+                    currentValue = match ? match[1] : element.textContent;
+                } else if (element.classList.contains('metric-value') || element.classList.contains('info-value') || element.classList.contains('value')) {
+                    currentValue = element.textContent.trim();
+                } else {
+                    // For spans with nested metric-value
+                    const valueSpan = element.querySelector('.metric-value, .info-value, .value');
+                    if (valueSpan) {
+                        currentValue = valueSpan.textContent.trim();
+                    } else {
+                        // Extract value after colon: "User: 23.4%" -> "23.4%"
+                        const match = element.textContent.match(/:\s*([0-9.]+[%GMKTB\s]*)/);
+                        currentValue = match ? match[1] : element.textContent.trim();
+                    }
+                }
+                
+                // Normalize both values for comparison
+                const normalizedCurrent = normalizeValue(currentValue);
+                const normalizedPrevious = previousValues.has(key) ? normalizeValue(previousValues.get(key)) : '';
+                
+                // Check if value actually changed (after normalization)
+                if (normalizedPrevious && normalizedPrevious !== normalizedCurrent) {
+                    // Value changed - animate it
+                    animateValueChange(element);
+                }
+                
+                // Store current value for next comparison (store normalized version)
+                previousValues.set(key, normalizedCurrent);
+            });
+        }
+
+        function animateValueChange(element) {
+            // Add animation class
+            element.classList.add('value-changed');
+            
+            // Also animate nested value spans if they exist
+            const valueSpans = element.querySelectorAll('.metric-value, .info-value, .value');
+            valueSpans.forEach(span => {
+                span.classList.add('value-changed');
+            });
+            
+            // Remove animation class after animation completes (1.5 seconds)
+            setTimeout(() => {
+                element.classList.remove('value-changed');
+                valueSpans.forEach(span => {
+                    span.classList.remove('value-changed');
+                });
+            }, 1500);
+        }
+
+        // Initialize tracking on first load
+        document.addEventListener('DOMContentLoaded', function() {
+            trackValueChanges();
+        });
+
+        
+        // Track changes after each HTMX update
+        document.addEventListener('htmx:afterSwap', function(evt) {
+            if (evt.detail.target.id === 'nodeMetrics' || evt.detail.target.id === 'podInfo' || evt.detail.target.id === 'processDetails') {
+                trackValueChanges();
+            }
+        });
+        // Track if a flamegraph is being generated
+        let isGeneratingFlamegraph = false;
+        
+        // Handle flamegraph generation with async polling approach
+        function generateFlamegraph() {
+            if (isGeneratingFlamegraph) {
+                console.log('Flamegraph generation already in progress');
+                return;
+            }
+            
+            const button = document.querySelector('.flamegraph-btn');
+            const originalText = button.textContent;
+            const duration = document.getElementById('duration').value;
+            const format = 'json';
+            
+            isGeneratingFlamegraph = true;
+            button.textContent = `⏳ Starting generation...`;
+            button.disabled = true;
+            
+            console.log('Starting async flamegraph request...');
+            
+            // Step 1: Start the flamegraph generation
+            fetch(`/api/pods/{{.NodeName}}/{{.PodName}}/flamegraph?duration=${duration}`, {
+                method: 'POST'
+            })
+            .then(async response => {
+                console.log('Received response:', response.status, response.statusText);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error response body:', errorText);
+                    let errorMsg = 'Failed to start flamegraph generation';
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        errorMsg = errorJson.error || errorMsg;
+                    } catch (e) {
+                        errorMsg = errorText || errorMsg;
+                    }
+                    throw new Error(errorMsg);
+                }
+                
+                return response.json();
+            })
+            .then(result => {
+                console.log('Task started:', result);
+                if (result.status !== 'started' || !result.task_id) {
+                    throw new Error('Invalid response from server');
+                }
+                
+                // Step 2: Poll for completion
+                return pollFlamegraphStatus(result.task_id, button, duration, format);
+            })
+            .catch(error => {
+                console.error('Error starting flamegraph:', error);
+                showNotification('❌ Failed to start flamegraph: ' + error.message, 'error');
+                button.textContent = originalText;
+                button.disabled = false;
+                isGeneratingFlamegraph = false;
+            });
+        }
+        
+        // Poll flamegraph status until completion
+        function pollFlamegraphStatus(taskId, button, duration, format) {
+            let pollCount = 0;
+            const maxPolls = 120; // 10 minutes max (120 * 5s)
+            
+            const poll = () => {
+                pollCount++;
+                button.textContent = `⏳ Generating... (${pollCount * 5}s)`;
+                
+                console.log(`Polling status for task ${taskId}, attempt ${pollCount}`);
+                
+                fetch(`/api/flamegraph/${taskId}/status`)
+                .then(response => response.json())
+                .then(result => {
+                    console.log('Status result:', result);
+                    
+                    if (result.status === 'completed' && result.ready) {
+                        // Step 3: Download the completed flamegraph
+                        console.log('Flamegraph completed, downloading...');
+                        button.textContent = '⬇️ Downloading...';
+                        downloadFlamegraph(taskId, format, duration);
+                        return;
+                    }
+                    
+                    if (result.status === 'error') {
+                        throw new Error(result.error || 'Flamegraph generation failed');
+                    }
+                    
+                    if (result.status === 'processing') {
+                        if (pollCount >= maxPolls) {
+                            throw new Error('Flamegraph generation timed out');
+                        }
+                        // Continue polling
+                        setTimeout(poll, 5000);
+                        return;
+                    }
+                    
+                    throw new Error('Unknown status: ' + result.status);
+                })
+                .catch(error => {
+                    console.error('Error polling status:', error);
+                    showNotification('❌ ' + error.message, 'error');
+                    resetButton(button);
+                });
+            };
+            
+            // Start polling after a short delay
+            setTimeout(poll, 2000);
+        }
+        
+        // Download or render the completed flamegraph
+        function downloadFlamegraph(taskId, format, duration) {
+            if (format === 'json') {
+                renderInteractiveFlamegraph(taskId, duration);
+            } else {
+                downloadFlamegraphFile(taskId, format, duration);
+            }
+        }
+        
+        // Render interactive flamegraph using d3-flame-graph
+        function renderInteractiveFlamegraph(taskId, duration) {
+            // Show button to open flamegraph
+            showFlamegraphButton(taskId);
+            resetButton(document.querySelector('.flamegraph-btn'));
+        }
+        
+        // Show button to open flamegraph in new tab
+        function showFlamegraphButton(taskId) {
+            const flamegraphUrl = `/flamegraph/{{.NodeName}}/{{.PodName}}?task_id=${taskId}`;
+            
+            // Create button
+            const button = document.createElement('button');
+            button.className = 'flamegraph-btn';
+            button.innerHTML = '🔥 Open Interactive Flamegraph';
+            button.onclick = function() {
+                window.open(flamegraphUrl, '_blank');
+            };
+            
+            // Find where to insert the button
+            const actionsSection = document.querySelector('.actions-section .flamegraph-controls');
+            
+            // Remove existing flamegraph buttons if any
+            const existingBtn = actionsSection.querySelector('.flamegraph-ready-btn');
+            if (existingBtn) {
+                existingBtn.remove();
+            }
+            
+            // Add the new button
+            button.className = 'flamegraph-btn flamegraph-ready-btn';
+            button.style.background = '#28a745';
+            button.style.marginTop = '10px';
+            actionsSection.appendChild(button);
+            
+            showNotification(`✅ Flamegraph ready! Click the green button to view.`, 'success');
+        }
+        
+        // Download flamegraph file (non-interactive formats)
+        function downloadFlamegraphFile(taskId, format, duration) {
+            fetch(`/api/flamegraph/${taskId}/download`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to download flamegraph');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                console.log('Downloaded flamegraph, size:', blob.size);
+                
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const extension = format === 'svg' ? 'svg' : format === 'folded' ? 'folded.txt' : 'txt';
+                a.download = `flamegraph-{{.NodeName}}-{{.PodName}}-${duration}s.${extension}`;
+                
+                document.body.appendChild(a);
+                a.style.display = 'none';
+                a.click();
+                
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                }, 1000);
+                
+                showNotification(`✅ Flamegraph downloaded! (${Math.round(blob.size / 1024)}KB)`, 'success');
+                resetButton(document.querySelector('.flamegraph-btn'));
+            })
+            .catch(error => {
+                console.error('Error downloading flamegraph:', error);
+                showNotification('❌ Download failed: ' + error.message, 'error');
+                resetButton(document.querySelector('.flamegraph-btn'));
+            });
+        }
+        
+        // Reset button to original state
+        function resetButton(button) {
+            button.textContent = '🔥 Generate Flamegraph';
+            button.disabled = false;
+            isGeneratingFlamegraph = false;
+        }
+        
+        // Show notification function
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 16px 24px;
+                background: ${type === 'success' ? '#2ea043' : '#f85149'};
+                color: white;
+                border-radius: 8px;
+                font-weight: 500;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

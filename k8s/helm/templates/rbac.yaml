@@ -1,0 +1,38 @@
+{{- if .Values.rbac.create }}
+{{- if .Values.rbac.serviceAccount.create }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.rbac.serviceAccount.name }}
+  namespace: {{ .Values.namespace }}
+  {{- if .Values.rbac.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml .Values.rbac.serviceAccount.annotations | nindent 4 }}
+  {{- end }}
+---
+{{- end }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.rbac.serviceAccount.name }}
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.rbac.serviceAccount.name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.rbac.serviceAccount.name }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.rbac.serviceAccount.name }}
+  namespace: {{ .Values.namespace }}
+{{- end }}

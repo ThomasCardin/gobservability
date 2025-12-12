@@ -1,0 +1,28 @@
+apiVersion: skaffold/v4beta11
+kind: Config
+metadata:
+  name: gobservability
+build:
+  platforms: ["linux/arm64", "linux/amd64"]
+  local:
+    push: true
+  artifacts:
+  - image: ghcr.io/thomascardin/gobservability-server
+    context: .
+    docker:
+      dockerfile: cmd/server/Dockerfile
+  - image: ghcr.io/thomascardin/gobservability-agent
+    context: .
+    docker:
+      dockerfile: cmd/agent/Dockerfile
+deploy:
+  kubectl:
+    defaultNamespace: gobservability
+manifests:
+  rawYaml:
+  - k8s/helm/templates/*.yaml
+portForward:
+- resourceType: service
+  resourceName: gobservability-server
+  port: 8080
+  localPort: 8080

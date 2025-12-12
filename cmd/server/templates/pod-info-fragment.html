@@ -1,0 +1,86 @@
+{{if .Pod}}
+<div class="section-separator">
+    <h2 class="section-title">📦 POD ({{.Pod.Name}}) PID: {{if eq .Pod.PID -1}}Not Found{{else}}{{.Pod.PID}}{{end}} | {{if .Pod.ProcessName}}{{.Pod.ProcessName}}{{else}}-{{end}} | {{if .Pod.State}}{{.Pod.State}}{{else}}-{{end}}</h2>
+    <div style="font-size: 0.9em; margin-top: 8px; color: #a0a0a0;">
+        <div>📊 Requests: CPU {{.Pod.ResourceRequestCPU}} | Memory {{.Pod.ResourceRequestMemory}}</div>
+        <div>🚨 Limits: CPU {{.Pod.ResourceLimitCPU}} | Memory {{.Pod.ResourceLimitMemory}}</div>
+    </div>
+</div>
+{{if ne .Pod.Status "ERROR"}}
+<div class="metrics-grid">
+    <!-- CPU Card -->
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">🔥 CPU</span>
+            <span class="metric-value main-value" data-pod="{{.Pod.Name}}" data-metric="cpu-total">{{.Pod.CPU}}</span>
+        </div>
+        <div class="metric-details">
+            <div class="detail-row">
+                <span>User</span>
+                <span class="metric-value" data-pod="{{.Pod.Name}}" data-metric="cpu-user">{{printf "%.1f%%" .Pod.CPUUser}}</span>
+            </div>
+            <div class="detail-row">
+                <span>System</span>
+                <span class="metric-value" data-pod="{{.Pod.Name}}" data-metric="cpu-system">{{printf "%.1f%%" .Pod.CPUSystem}}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Memory Card -->
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">🧠 MEMORY</span>
+            <span class="metric-value main-value" data-pod="{{.Pod.Name}}" data-metric="memory-total">{{.Pod.Memory}}</span>
+        </div>
+        <div class="metric-details">
+            <div class="detail-row">
+                <span>Used</span>
+                <span class="metric-value" data-pod="{{.Pod.Name}}" data-metric="memory-used">{{printf "%.1fM" .Pod.MemoryUsed}}</span>
+            </div>
+            <div class="detail-row">
+                <span>Virtual</span>
+                <span class="metric-value" data-pod="{{.Pod.Name}}" data-metric="memory-virtual">{{printf "%.1fM" .Pod.MemoryVirtual}}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Network Card -->
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">🌐 NETWORK</span>
+            <span class="metric-value main-value" data-pod="{{.Pod.Name}}" data-metric="network-total">{{.Pod.Network}}</span>
+        </div>
+        <div class="metric-details">
+            <div class="detail-row">
+                <span>RX</span>
+                <span class="metric-value" data-pod="{{.Pod.Name}}" data-metric="network-rx">{{printf "%.1fM" .Pod.NetworkRX}}</span>
+            </div>
+            <div class="detail-row">
+                <span>TX</span>
+                <span class="metric-value" data-pod="{{.Pod.Name}}" data-metric="network-tx">{{printf "%.1fM" .Pod.NetworkTX}}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Disk Card -->
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">💾 DISK</span>
+            <span class="metric-value main-value" data-pod="{{.Pod.Name}}" data-metric="disk-total">{{.Pod.Disk}}</span>
+        </div>
+        <div class="metric-details">
+            <div class="detail-row">
+                <span>Read</span>
+                <span class="metric-value" data-pod="{{.Pod.Name}}" data-metric="disk-read">{{printf "%.1fM" .Pod.DiskRead}}</span>
+            </div>
+            <div class="detail-row">
+                <span>Write</span>
+                <span class="metric-value" data-pod="{{.Pod.Name}}" data-metric="disk-write">{{printf "%.1fM" .Pod.DiskWrite}}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{{else}}
+<div class="error-state">Pod non disponible</div>
+{{end}}
+{{end}}

@@ -1,0 +1,269 @@
+package kubernetes
+
+import (
+	"bufio"
+	"context"
+	"errors"
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
+
+	"github.com/ThomasCardin/gobservability/cmd/agent/internal"
+	"github.com/ThomasCardin/gobservability/cmd/agent/shared"
+	"github.com/ThomasCardin/gobservability/shared/types"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+)
+
+func GetPodsPID(devMode, nodeName string) ([]*types.Pod, error) {
+	if isDev := os.Getenv(devMode); isDev == "true" {
+		return generateFakePods(nodeName), nil
+	}
+
+	// In-cluster config for production
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	pods, err := clientset.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{
+		FieldSelector: "spec.nodeName=" + nodeName,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*types.Pod
+	for _, pod := range pods.Items {
+		// Get resource limits and requests
+		resourceLimits := getResourceLimits(pod.Spec.Containers)
+		resourceRequests := getResourceRequests(pod.Spec.Containers)
+
+		// Get containerid
+		containerIDs, err := getContainerID(pod.Name, pod.Status.ContainerStatuses)
+		if err != nil {
+			result = append(result, &types.Pod{
+				Name:             pod.Name,
+				ContainerID:      "Not found",
+				PID:              -1,
+				ResourceLimits:   resourceLimits,
+				ResourceRequests: resourceRequests,
+			})
+			continue
+		}
+
+		// Get PID and collect metrics
+		for _, containerID := range containerIDs {
+			pid, err := getPID(devMode, containerID)
+			if err != nil {
+				result = append(result, &types.Pod{
+					Name:             pod.Name,
+					ContainerID:      containerID,
+					PID:              -1,
+					PodMetrics:       types.PodMetrics{}, // Empty metrics for failed pods
+					PidDetails:       types.PidDetails{}, // Empty details for failed pods
+					ResourceLimits:   resourceLimits,
+					ResourceRequests: resourceRequests,
+				})
+			} else {
+				// Collect detailed metrics for this PID
+				podMetrics, pidDetails, metricsErr := internal.CollectPodMetrics(devMode, pid)
+				if metricsErr != nil {
+					result = append(result, &types.Pod{
+						Name:             pod.Name,
+						ContainerID:      containerID,
+						PID:              pid,
+						PodMetrics:       types.PodMetrics{},
+						PidDetails:       types.PidDetails{},
+						ResourceLimits:   resourceLimits,
+						ResourceRequests: resourceRequests,
+					})
+				} else {
+					result = append(result, &types.Pod{
+						Name:             pod.Name,
+						ContainerID:      containerID,
+						PID:              pid,
+						PodMetrics:       *podMetrics,
+						PidDetails:       *pidDetails,
+						ResourceLimits:   resourceLimits,
+						ResourceRequests: resourceRequests,
+					})
+				}
+			}
+		}
+	}
+
+	return result, nil
+}
+
+func getContainerID(podName string, containerStatuses []v1.ContainerStatus) ([]string, error) {
+	var containers []string
+
+	// Get container IDs from status
+	for _, containerStatus := range containerStatuses {
+		if containerStatus.ContainerID != "" {
+			// Remove runtime prefix (docker://, containerd://, etc.)
+			containerID := containerStatus.ContainerID
+			if idx := strings.LastIndex(containerID, "://"); idx != -1 {
+				containerID = containerID[idx+3:]
+			}
+			containers = append(containers, containerID)
+		}
+	}
+
+	if len(containers) == 0 {
+		return nil, errors.New("no containers found for pod")
+	}
+
+	return containers, nil
+}
+
+func getPID(devMode, containerID string) (int, error) {
+	// Parse /proc/*/cgroup to find PID from container ID
+	procBasePath := shared.GetProcBasePath(devMode)
+	file, err := os.Open(procBasePath)
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
+
+	dirs, err := file.Readdir(-1)
+	if err != nil {
+		return 0, err
+	}
+
+	for _, dir := range dirs {
+		if !dir.IsDir() {
+			continue
+		}
+
+		// Check if directory name is a PID (numeric)
+		pid, err := strconv.Atoi(dir.Name())
+		if err != nil {
+			continue
+		}
+
+		// Read cgroup file to check for container ID
+		cgroupPath := fmt.Sprintf("%s/%d/cgroup", procBasePath, pid)
+		cgroupFile, err := os.Open(cgroupPath)
+		if err != nil {
+			continue
+		}
+
+		scanner := bufio.NewScanner(cgroupFile)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if strings.Contains(line, containerID) {
+				cgroupFile.Close()
+				return pid, nil
+			}
+		}
+		cgroupFile.Close()
+	}
+
+	return -1, errors.New("PID not found for container")
+}
+
+// getResourceLimits extracts resource limits from pod containers
+func getResourceLimits(containers []v1.Container) types.ResourceInfo {
+	var totalCPU, totalMemory string
+
+	for _, container := range containers {
+		if container.Resources.Limits != nil {
+			// Get CPU limits
+			if cpu, ok := container.Resources.Limits[v1.ResourceCPU]; ok {
+				cpuStr := cpu.String()
+				if cpuStr != "" && cpuStr != "0" {
+					if totalCPU == "" {
+						totalCPU = cpuStr
+					} else {
+						// If multiple containers, concatenate values
+						totalCPU = totalCPU + "+" + cpuStr
+					}
+				}
+			}
+
+			// Get Memory limits
+			if memory, ok := container.Resources.Limits[v1.ResourceMemory]; ok {
+				memoryStr := memory.String()
+				if memoryStr != "" && memoryStr != "0" {
+					if totalMemory == "" {
+						totalMemory = memoryStr
+					} else {
+						// If multiple containers, concatenate values
+						totalMemory = totalMemory + "+" + memoryStr
+					}
+				}
+			}
+		}
+	}
+
+	// Set infinity symbol if not specified or empty
+	if totalCPU == "" {
+		totalCPU = "∞"
+	}
+	if totalMemory == "" {
+		totalMemory = "∞"
+	}
+
+	return types.ResourceInfo{
+		CPU:    totalCPU,
+		Memory: totalMemory,
+	}
+}
+
+// getResourceRequests extracts resource requests from pod containers
+func getResourceRequests(containers []v1.Container) types.ResourceInfo {
+	var totalCPU, totalMemory string
+
+	for _, container := range containers {
+		if container.Resources.Requests != nil {
+			// Get CPU requests
+			if cpu, ok := container.Resources.Requests[v1.ResourceCPU]; ok {
+				cpuStr := cpu.String()
+				if cpuStr != "" && cpuStr != "0" {
+					if totalCPU == "" {
+						totalCPU = cpuStr
+					} else {
+						// If multiple containers, concatenate values
+						totalCPU = totalCPU + "+" + cpuStr
+					}
+				}
+			}
+
+			// Get Memory requests
+			if memory, ok := container.Resources.Requests[v1.ResourceMemory]; ok {
+				memoryStr := memory.String()
+				if memoryStr != "" && memoryStr != "0" {
+					if totalMemory == "" {
+						totalMemory = memoryStr
+					} else {
+						// If multiple containers, concatenate values
+						totalMemory = totalMemory + "+" + memoryStr
+					}
+				}
+			}
+		}
+	}
+
+	// Set infinity symbol if not specified or empty
+	if totalCPU == "" {
+		totalCPU = "∞"
+	}
+	if totalMemory == "" {
+		totalMemory = "∞"
+	}
+
+	return types.ResourceInfo{
+		CPU:    totalCPU,
+		Memory: totalMemory,
+	}
+}

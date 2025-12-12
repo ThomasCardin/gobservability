@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flamegraph - {{.PodName}} | gobservability</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .flamegraph-page {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        .flamegraph-header {
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .flamegraph-header h1 {
+            margin: 0;
+            font-size: 20px;
+            color: #333;
+        }
+        
+        .flamegraph-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn:hover {
+            background: #545b62;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        #search-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 200px;
+        }
+        
+        .flamegraph-container {
+            flex: 1;
+            padding: 20px;
+            background: white;
+            overflow: auto;
+        }
+        
+        .instructions {
+            padding: 15px;
+            background: #e8f4fd;
+            border: 1px solid #bee5eb;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .flamegraph-svg {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+        
+        .flame-rect {
+            stroke: #fff;
+            stroke-width: 1;
+            cursor: pointer;
+        }
+        
+        .flame-rect:hover {
+            stroke: #000;
+            stroke-width: 2;
+        }
+        
+        .flame-text {
+            pointer-events: none;
+            font-family: Verdana, Arial, sans-serif;
+            font-size: 12px;
+            fill: #000;
+        }
+        
+        .loading, .error {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            color: #dc3545;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+        
+        .zoom-info {
+            padding: 10px;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="flamegraph-page">
+        <div class="flamegraph-header">
+            <h1>🔥 Flamegraph - {{.PodName}}</h1>
+            <div class="flamegraph-controls">
+                <button id="reset-zoom" class="btn">Reset Zoom</button>
+                <button id="search-toggle" class="btn">Toggle Search</button>
+                <input id="search-input" type="text" placeholder="Search functions..." style="display: none;">
+                <a href="/process/{{.NodeName}}/{{.PodName}}" class="btn btn-primary">← Back to Process</a>
+            </div>
+        </div>
+        
+        <div class="flamegraph-container">
+            <div class="instructions">
+                <strong>💡 Usage Tips:</strong><br>
+                • <strong>Click</strong> on any rectangle to zoom in<br>
+                • <strong>Hover</strong> for function details<br>
+                • Use <strong>Reset Zoom</strong> to go back to full view<br>
+                • Use <strong>Search</strong> to highlight specific functions
+            </div>
+            
+            <div id="zoom-info" class="zoom-info" style="display: none;">
+                <strong>Zoomed to:</strong> <span id="zoom-function"></span>
+            </div>
+            
+            <div id="flamegraph-container">
+                <div class="loading">Loading flamegraph data...</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tooltip -->
+    <div id="tooltip" class="tooltip" style="display: none;"></div>
+    
+    <script>
+        // Global variables
+        let flamegraphData = null;
+        let currentZoom = null;
+        let searchTerm = '';
+        
+        // Load flamegraph data
+        const taskId = new URLSearchParams(window.location.search).get('task_id');
+        
+        if (!taskId) {
+            document.getElementById('flamegraph-container').innerHTML = 
+                '<div class="error">Error: No task_id provided in URL</div>';
+        } else {
+            fetch(`/api/flamegraph/${taskId}/download`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch flamegraph data');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Flamegraph data loaded:', data);
+                flamegraphData = data;
+                renderFlamegraph(data);
+            })
+            .catch(error => {
+                console.error('Error loading flamegraph:', error);
+                document.getElementById('flamegraph-container').innerHTML = 
+                    `<div class="error">Error loading flamegraph: ${error.message}</div>`;
+            });
+        }
+        
+        function renderFlamegraph(data, zoomNode = null) {
+            const container = document.getElementById('flamegraph-container');
+            const width = container.offsetWidth - 40;
+            const cellHeight = 20;
+            
+            // Calculate tree layout
+            const layout = calculateLayout(data, width, cellHeight, zoomNode);
+            const height = layout.maxDepth * cellHeight + 50;
+            
+            // Create SVG
+            const svg = `
+                <svg class="flamegraph-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+                    ${layout.rects.map(rect => createRect(rect)).join('')}
+                    ${layout.texts.map(text => createText(text)).join('')}
+                </svg>
+            `;
+            
+            container.innerHTML = svg;
+            
+            // Add event listeners
+            addEventListeners();
+            
+            // Update zoom info
+            updateZoomInfo(zoomNode);
+        }
+        
+        function calculateLayout(node, totalWidth, cellHeight, zoomNode = null) {
+            const rects = [];
+            const texts = [];
+            let maxDepth = 0;
+            
+            // If we're zooming, use the zoom node as root
+            const rootNode = zoomNode || node;
+            const rootValue = rootNode.value || 1;
+            
+            function traverse(node, x, width, depth) {
+                maxDepth = Math.max(maxDepth, depth);
+                
+                const y = depth * cellHeight;
+                const nodeValue = node.value || 1;
+                const percentage = (nodeValue / rootValue) * 100;
+                
+                // Color based on depth and function type
+                const color = getColor(node.name, depth, percentage);
+                
+                // Add rectangle
+                rects.push({
+                    x, y, width, height: cellHeight,
+                    color,
+                    node,
+                    percentage: percentage.toFixed(2)
+                });
+                
+                // Add text if width is sufficient
+                if (width > 30) {
+                    const textX = x + width / 2;
+                    const textY = y + cellHeight / 2 + 4;
+                    const displayText = truncateText(node.name, width);
+                    
+                    texts.push({
+                        x: textX, y: textY,
+                        text: displayText,
+                        anchor: 'middle'
+                    });
+                }
+                
+                // Process children
+                if (node.children && node.children.length > 0) {
+                    let childX = x;
+                    const totalChildValue = node.children.reduce((sum, child) => sum + (child.value || 1), 0);
+                    
+                    node.children.forEach(child => {
+                        const childWidth = (width * (child.value || 1)) / totalChildValue;
+                        traverse(child, childX, childWidth, depth + 1);
+                        childX += childWidth;
+                    });
+                }
+            }
+            
+            traverse(rootNode, 0, totalWidth, 0);
+            
+            return { rects, texts, maxDepth: maxDepth + 1 };
+        }
+        
+        function getColor(name, depth, percentage) {
+            // Generate color based on function name hash and depth
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) {
+                hash = ((hash << 5) - hash + name.charCodeAt(i)) & 0xffffffff;
+            }
+            
+            const hue = Math.abs(hash) % 360;
+            const saturation = 50 + (depth * 5) % 30;
+            const lightness = 60 + (percentage * 0.3) % 20;
+            
+            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        }
+        
+        function truncateText(text, width) {
+            const charWidth = 7; // Approximate character width
+            const maxChars = Math.floor(width / charWidth) - 2;
+            
+            if (text.length <= maxChars) return text;
+            return text.substring(0, maxChars - 3) + '...';
+        }
+        
+        function createRect(rect) {
+            const highlight = searchTerm && rect.node.name.toLowerCase().includes(searchTerm.toLowerCase());
+            const strokeColor = highlight ? '#ff0000' : '#fff';
+            const strokeWidth = highlight ? '2' : '1';
+            
+            return `
+                <rect x="${rect.x}" y="${rect.y}" width="${rect.width}" height="${rect.height}"
+                      fill="${rect.color}" stroke="${strokeColor}" stroke-width="${strokeWidth}"
+                      class="flame-rect" data-node-id="${rect.node.name || 'unknown'}">
+                </rect>
+            `;
+        }
+        
+        function createText(text) {
+            return `
+                <text x="${text.x}" y="${text.y}" text-anchor="${text.anchor}" class="flame-text">
+                    ${escapeHtml(text.text)}
+                </text>
+            `;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function addEventListeners() {
+            const rects = document.querySelectorAll('.flame-rect');
+            const tooltip = document.getElementById('tooltip');
+            
+            rects.forEach(rect => {
+                rect.addEventListener('mouseover', function(e) {
+                    const nodeName = this.getAttribute('data-node-id');
+                    const node = findNodeByName(flamegraphData, nodeName);
+                    
+                    if (node) {
+                        const percentage = ((node.value / flamegraphData.value) * 100).toFixed(2);
+                        tooltip.innerHTML = `
+                            <strong>Function:</strong> ${node.name}<br>
+                            <strong>Samples:</strong> ${node.value}<br>
+                            <strong>Percentage:</strong> ${percentage}%<br>
+                            <em>Click to zoom in</em>
+                        `;
+                        tooltip.style.display = 'block';
+                        tooltip.style.left = (e.pageX + 10) + 'px';
+                        tooltip.style.top = (e.pageY - 10) + 'px';
+                    }
+                });
+                
+                rect.addEventListener('mousemove', function(e) {
+                    tooltip.style.left = (e.pageX + 10) + 'px';
+                    tooltip.style.top = (e.pageY - 10) + 'px';
+                });
+                
+                rect.addEventListener('mouseout', function() {
+                    tooltip.style.display = 'none';
+                });
+                
+                rect.addEventListener('click', function() {
+                    const nodeName = this.getAttribute('data-node-id');
+                    const node = findNodeByName(flamegraphData, nodeName);
+                    
+                    if (node) {
+                        currentZoom = node;
+                        renderFlamegraph(flamegraphData, node);
+                    }
+                });
+            });
+        }
+        
+        function findNodeByName(root, name) {
+            if (root.name === name) return root;
+            
+            if (root.children) {
+                for (const child of root.children) {
+                    const found = findNodeByName(child, name);
+                    if (found) return found;
+                }
+            }
+            
+            return null;
+        }
+        
+        function updateZoomInfo(zoomNode) {
+            const zoomInfo = document.getElementById('zoom-info');
+            const zoomFunction = document.getElementById('zoom-function');
+            
+            if (zoomNode && zoomNode !== flamegraphData) {
+                zoomInfo.style.display = 'block';
+                zoomFunction.textContent = zoomNode.name;
+            } else {
+                zoomInfo.style.display = 'none';
+            }
+        }
+        
+        // Control buttons
+        document.getElementById('reset-zoom').addEventListener('click', function() {
+            currentZoom = null;
+            renderFlamegraph(flamegraphData);
+        });
+        
+        document.getElementById('search-toggle').addEventListener('click', function() {
+            const searchInput = document.getElementById('search-input');
+            if (searchInput.style.display === 'none') {
+                searchInput.style.display = 'inline-block';
+                searchInput.focus();
+            } else {
+                searchInput.style.display = 'none';
+                searchInput.value = '';
+                searchTerm = '';
+                renderFlamegraph(flamegraphData, currentZoom);
+            }
+        });
+        
+        document.getElementById('search-input').addEventListener('input', function(e) {
+            searchTerm = e.target.value;
+            renderFlamegraph(flamegraphData, currentZoom);
+        });
+    </script>
+</body>
+</html>

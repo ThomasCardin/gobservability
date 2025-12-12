@@ -1,0 +1,28 @@
+apiVersion: v1
+entries:
+  gobservability:
+  - apiVersion: v2
+    appVersion: 0.0.4
+    created: "2025-12-12T18:36:08.126496456Z"
+    description: A lightweight, real-time Kubernetes monitoring platform built in
+      Go
+    digest: 4d283d58078363c2193d14320845ea333d4e716c6d804c86b364c8c869f58300
+    home: https://github.com/ThomasCardin/gobservability
+    keywords:
+    - monitoring
+    - observability
+    - kubernetes
+    - metrics
+    - alerting
+    - flamegraph
+    maintainers:
+    - name: Thomas Cardin
+      url: https://github.com/ThomasCardin
+    name: gobservability
+    sources:
+    - https://github.com/ThomasCardin/gobservability
+    type: application
+    urls:
+    - https://github.com/ThomasCardin/gobservability/releases/download/v0.0.4/gobservability-0.0.4.tgz
+    version: 0.0.4
+generated: "2025-12-12T18:36:08.125897084Z"

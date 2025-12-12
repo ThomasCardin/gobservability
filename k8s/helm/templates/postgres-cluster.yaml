@@ -1,0 +1,33 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: gobservability-postgres
+  namespace: {{ .Values.namespace }}
+spec:
+  imageName: ghcr.io/cloudnative-pg/postgresql:16
+  instances: 1  # Fixed: always 1 instance
+
+  postgresql:
+    parameters:
+      timezone: "America/Montreal"
+    shared_preload_libraries: []
+
+  managed:
+    roles:
+      - name: gobs
+        superuser: false
+        login: true
+        createdb: true
+
+  bootstrap:
+    initdb:
+      database: gobservability
+      owner: gobs
+      secret:
+        name: postgres-user-secret
+      postInitSQL:
+        - CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+  storage:
+    size: {{ .Values.postgresql.storage.size }}
+    storageClass: {{ .Values.postgresql.storage.storageClass }}

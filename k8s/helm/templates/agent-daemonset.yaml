@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: gobservability-agent
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: gobservability-agent
+spec:
+  selector:
+    matchLabels:
+      app: gobservability-agent
+  template:
+    metadata:
+      labels:
+        app: gobservability-agent
+    spec:
+      {{- if .Values.rbac.create }}
+      serviceAccountName: {{ .Values.rbac.serviceAccount.name }}
+      {{- end }}
+      hostNetwork: false
+      hostPID: true  # Required: agent needs to see all node processes
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 6 }}
+      {{- end }}
+      {{- if .Values.agent.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.agent.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.agent.tolerations }}
+      tolerations:
+        {{- toYaml .Values.agent.tolerations | nindent 6 }}
+      {{- end }}
+      {{- if .Values.agent.affinity }}
+      affinity:
+        {{- toYaml .Values.agent.affinity | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: agent
+        image: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag }}"
+        imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+        args:
+        - "./agent"
+        - "-grpc-server=gobservability-server:9090"
+        - "-interval={{ .Values.agent.interval }}"
+        - "-hostname=$(NODE_NAME)"
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        resources:
+          {{- toYaml .Values.agent.resources | nindent 10 }}
+        securityContext:
+          privileged: true  # Required for /proc access and perf profiling
+          capabilities:
+            add:
+            - SYS_ADMIN   # Required for /proc access
+            - SYS_PTRACE  # Required for perf profiling
+            - SYS_RAWIO   # Required for perf profiling
+        volumeMounts:
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+      volumes:
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: sys
+        hostPath:
+          path: /sys
