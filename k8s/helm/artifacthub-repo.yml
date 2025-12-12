@@ -1,6 +1,3 @@
-# Artifact Hub repository metadata file
-# https://artifacthub.io/docs/topics/repositories/
-
 repositoryID: gobservability
 name: Gobservability
 displayName: Gobservability
@@ -8,7 +5,7 @@ url: https://thomascardin.github.io/gobservability/
 
 owners:
   - name: Thomas Cardin
-    email: thomas@example.com  # Change to your email
+    email: tomcardin@outlook.com
 
 links:
   - name: GitHub
