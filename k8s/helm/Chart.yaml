@@ -1,0 +1,32 @@
+apiVersion: v2
+name: gobservability
+description: A lightweight, real-time Kubernetes monitoring platform built in Go
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+keywords:
+  - monitoring
+  - observability
+  - kubernetes
+  - metrics
+  - alerting
+  - flamegraph
+
+home: https://github.com/ThomasCardin/gobservability
+sources:
+  - https://github.com/ThomasCardin/gobservability
+
+maintainers:
+  - name: Thomas Cardin
+    url: https://github.com/ThomasCardin
+
+# Icon for the chart (optional)
+# icon: https://example.com/icon.png
+
+# Dependencies (if any)
+# dependencies:
+#   - name: cloudnative-pg
+#     version: "0.x.x"
+#     repository: https://cloudnative-pg.github.io/charts
+#     condition: postgresql.enabled

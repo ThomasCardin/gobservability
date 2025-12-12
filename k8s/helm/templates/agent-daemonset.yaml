@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: gobservability-agent
-  namespace: gobservability
+  namespace: {{ .Values.namespace }}
   labels:
     app: gobservability-agent
 spec:
@@ -14,19 +14,35 @@ spec:
       labels:
         app: gobservability-agent
     spec:
-      serviceAccountName: gobservability-agent
+      {{- if .Values.rbac.create }}
+      serviceAccountName: {{ .Values.rbac.serviceAccount.name }}
+      {{- end }}
       hostNetwork: false
-      hostPID: true
+      hostPID: true  # Required: agent needs to see all node processes
+      {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
-      - name: ghcr-secret
+        {{- toYaml .Values.imagePullSecrets | nindent 6 }}
+      {{- end }}
+      {{- if .Values.agent.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.agent.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.agent.tolerations }}
+      tolerations:
+        {{- toYaml .Values.agent.tolerations | nindent 6 }}
+      {{- end }}
+      {{- if .Values.agent.affinity }}
+      affinity:
+        {{- toYaml .Values.agent.affinity | nindent 8 }}
+      {{- end }}
       containers:
       - name: agent
-        image: ghcr.io/thomascardin/gobservability-agent
-        imagePullPolicy: Always
+        image: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag }}"
+        imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
         args:
         - "./agent"
         - "-grpc-server=gobservability-server:9090"
-        - "-interval=5s"
+        - "-interval={{ .Values.agent.interval }}"
         - "-hostname=$(NODE_NAME)"
         env:
         - name: NODE_NAME
@@ -34,19 +50,14 @@ spec:
             fieldRef:
               fieldPath: spec.nodeName
         resources:
-          requests:
-            memory: "32Mi"
-            cpu: "100m"
-          limits:
-            memory: "64Mi"
-            cpu: "200m"
+          {{- toYaml .Values.agent.resources | nindent 10 }}
         securityContext:
-          privileged: true
+          privileged: true  # Required for /proc access and perf profiling
           capabilities:
             add:
-            - SYS_ADMIN
-            - SYS_PTRACE
-            - SYS_RAWIO
+            - SYS_ADMIN   # Required for /proc access
+            - SYS_PTRACE  # Required for perf profiling
+            - SYS_RAWIO   # Required for perf profiling
         volumeMounts:
         - name: proc
           mountPath: /host/proc

@@ -2,10 +2,10 @@ apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
   name: gobservability-postgres
-  namespace: gobservability
+  namespace: {{ .Values.namespace }}
 spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:16
-  instances: 1
+  instances: 1  # Fixed: always 1 instance
 
   postgresql:
     parameters:
@@ -24,11 +24,10 @@ spec:
       database: gobservability
       owner: gobs
       secret:
-        name: gobservability-postgres-user
+        name: postgres-user-secret
       postInitSQL:
         - CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-        - SET timezone = 'America/Montreal';
 
   storage:
-    size: 5Gi
-    storageClass: hdd-ceph-block
+    size: {{ .Values.postgresql.storage.size }}
+    storageClass: {{ .Values.postgresql.storage.storageClass }}

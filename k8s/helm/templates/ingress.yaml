@@ -1,15 +1,17 @@
+{{- if .Values.ingress.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: gobservability-ingress
-  namespace: gobservability
+  namespace: {{ .Values.namespace }}
+  {{- if .Values.ingress.annotations }}
   annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+  {{- end }}
 spec:
-  ingressClassName: nginx 
+  ingressClassName: {{ .Values.ingress.className }}
   rules:
-  - host: gobservability.ninebasetwo.net
+  - host: {{ .Values.ingress.host }}
     http:
       paths:
       - path: /
@@ -19,7 +21,10 @@ spec:
             name: gobservability-server
             port:
               number: 8080
+  {{- if .Values.ingress.tls.enabled }}
   tls:
   - hosts:
-    - gobservability.ninebasetwo.net
-    secretName: gobservability-tls
+    - {{ .Values.ingress.host }}
+    secretName: {{ .Values.ingress.tls.secretName }}
+  {{- end }}
+{{- end }}
