@@ -27,10 +27,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
       - name: Cache Docker layers
         uses: actions/cache@v4
         with:
@@ -47,7 +43,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/thomascardin/gobservability-server:${{ steps.version.outputs.VERSION }}
+            ghcr.io/thomascardin/gobservability-server:${{ github.ref_name }}
             ghcr.io/thomascardin/gobservability-server:latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,mode=max,dest=/tmp/.buildx-cache-new
@@ -61,7 +57,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/thomascardin/gobservability-agent:${{ steps.version.outputs.VERSION }}
+            ghcr.io/thomascardin/gobservability-agent:${{ github.ref_name }}
             ghcr.io/thomascardin/gobservability-agent:latest
           cache-from: type=local,src=/tmp/.buildx-cache-new
           cache-to: type=local,mode=max,dest=/tmp/.buildx-cache-final
